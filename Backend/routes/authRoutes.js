@@ -9,11 +9,18 @@ const { login } = authController;
 router.post('/login', login);
 
 router.get('/me', protects, async (req, res) => {
-    const admin = await Admin.findByPk(req.user.id, { attributes: ['id', 'username', 'email', 'role'] });
-    if (!admin) {
-        return res.status(404).json({ message: 'Admin not found' });
+    try {
+        const admin = await Admin.findByPk(req.user.id, {
+            attributes: ['id', 'username', 'email', 'role']
+        });
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin not found' });
+        }
+        return res.status(200).json(admin);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
     }
-    res.status(200).json(admin);
 });
 
 module.exports = router;

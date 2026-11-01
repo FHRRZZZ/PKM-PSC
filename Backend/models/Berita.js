@@ -1,6 +1,7 @@
 
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const { sequelize } = require('../config/db');
+const KategoriBerita = require('./KategoriBerita');
 
 const Berita = sequelize.define('Berita', {
     id: {
@@ -46,6 +47,16 @@ const Berita = sequelize.define('Berita', {
 }, {
     tableName: 'berita',
     timestamps: true
+});
+
+Berita.belongsTo(KategoriBerita, {
+    foreignKey: 'kategori_id',
+    as: 'kategori'
+});
+
+KategoriBerita.hasMany(Berita, {
+    foreignKey: 'kategori_id',
+    as: 'berita'
 });
 
 module.exports = Berita;
