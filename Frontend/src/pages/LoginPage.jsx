@@ -20,7 +20,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      navigate('/'); // Redirect ke Dashboard setelah sukses
+      navigate('/admin'); // Redirect ke dashboard CMS setelah sukses
     } catch (err) {
       setError(err.message || 'Email atau kata sandi salah');
     } finally {

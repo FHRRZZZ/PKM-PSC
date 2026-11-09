@@ -1,55 +1,13 @@
-import { useState } from "react";
+import { useEffect,useRef, useState } from "react";
+import { getBeritaPublik } from "../api/berita";
+import { getKontak } from "../api/kontak";
+import { getLayananPublik } from "../api/layanan";
 
-const services = [
-  {
-    name: "Gawat Darurat",
-    title: "Penanganan Gawat Darurat",
-    description:
-      "Respons awal untuk kondisi medis darurat yang membutuhkan pertolongan segera dari petugas PSC 119.",
-    checks: [
-      "Respons kondisi darurat",
-      "Panduan pertolongan pertama",
-      "Koordinasi petugas medis",
-      "Pelayanan 24 jam",
-    ],
-  },
-  {
-    name: "Non-Gawat Darurat",
-    title: "Penanganan Gawat Darurat",
-    description:
-      "Respons awal untuk kondisi medis darurat yang membutuhkan pertolongan segera dari petugas PSC 119.",
-    checks: [
-      "Respons kondisi darurat",
-      "Panduan pertolongan pertama",
-      "Koordinasi petugas medis",
-      "Pelayanan 24 jam",
-    ],
-  },
-  {
-    name: "Rujukan",
-    title: "Koordinasi Rujukan",
-    description:
-      "Koordinasi kebutuhan rujukan pasien menuju fasilitas kesehatan yang sesuai dengan kondisi dan kebutuhan penanganan.",
-    checks: [
-      "Koordinasi fasilitas kesehatan",
-      "Informasi rujukan",
-      "Koordinasi ambulans",
-      "Pendampingan proses evakuasi",
-    ],
-  },
-  {
-    name: "Konsultasi",
-    title: "Konsultasi Kesehatan",
-    description:
-      "Layanan komunikasi untuk memperoleh informasi dan arahan awal terkait kebutuhan pelayanan kesehatan.",
-    checks: [
-      "Informasi kesehatan",
-      "Arahan awal petugas",
-      "Informasi layanan",
-      "Komunikasi dengan petugas",
-    ],
-  },
-];
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+function getImageUrl(path) {
+  return path?.startsWith("http") ? path : `${API_URL}${path}`;
+}
 
 const steps = [
   {
@@ -79,24 +37,6 @@ const steps = [
     description:
       "Tunggu petugas datang. Tetap aktifkan handphone jika operator memandu tindakan pertolongan pertama.",
     note: "Penanganan di tempat",
-  },
-];
-
-const news = [
-  {
-    date: "17 April, 2026",
-    title: "Layanan ambulans gratis",
-    style: "from-slate-500 to-slate-900",
-  },
-  {
-    date: "23 Maret, 2026",
-    title: "Aksi tanggap penanganan cepat",
-    style: "from-slate-400 to-slate-800",
-  },
-  {
-    date: "17 April, 2026",
-    title: "Tidak sadarkan diri? Cek hal berikut",
-    style: "from-slate-300 to-slate-700",
   },
 ];
 
@@ -157,12 +97,131 @@ function EmergencyButton({ children = "Telepon 119", outline = false }) {
   );
 }
 
+function Reveal({ children, className = "", delay = 0, from = "up" }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const hidden = {
+    up: "translate-y-8",
+    left: "-translate-x-8",
+    right: "translate-x-8",
+  }[from];
+
+  return (
+    <div
+      ref={ref}
+      style={{ transitionDelay: `${delay}ms` }}
+      className={`transition-all duration-700 ease-out ${
+        visible ? "translate-x-0 translate-y-0 opacity-100" : `${hidden} opacity-0`
+      } ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
+  const [services, setServices] = useState([]);
+  const [news, setNews] = useState([]);
+  const [contact, setContact] = useState(null);
+  const [contentError, setContentError] = useState("");
   const [activeService, setActiveService] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMessage, setSearchMessage] = useState("");
 
   const selectedService = services[activeService];
+
+  const [scrolled, setScrolled] = useState(false);
+  const [pinned, setPinned] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    Promise.all([getLayananPublik(), getBeritaPublik(), getKontak()])
+      .then(([serviceData, newsData, contactData]) => {
+        if (!mounted) return;
+        setServices(Array.isArray(serviceData) ? serviceData : []);
+        setNews((Array.isArray(newsData) ? newsData : []).slice(0, 3));
+        setContact(Array.isArray(contactData) ? contactData[0] || null : null);
+      })
+      .catch((error) => {
+        if (mounted) setContentError(error.message || "Gagal memuat konten.");
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 20);
+      if (y <= 20) setPinned(true); // kembali ke atas -> aktifkan lagi
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+const floating = scrolled && pinned;
+
+  const MAP_EMBED_URL = 
+    "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3964.9981358582254!2d106.81831207442792!3d-6.394240562539539!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69eb8f7f246089%3A0xa154f35cbb225f69!2sPSC%20119%20KOTA%20DEPOK!5e0!3m2!1sid!2sid!4v1794122426971!5m2!1sid!2sid";
+  
+  const MAP_LINK = "https://www.google.com/maps/place/PSC+119+KOTA+DEPOK/@-6.3942406,106.8183121,17z/data=!3m1!4b1!4m6!3m5!1s0x2e69eb8f7f246089:0xa154f35cbb225f69!8m2!3d-6.3942406!4d106.8183121!16s%2Fg%2F11c5q9g9k7";
+
+  const FOOTER_LINKS = [
+  {
+    title: "Siapa Kami?",
+    items: [
+      { label: "Tentang Kami", href: "#kontak" },
+      { label: "Tim Medis & Kru", href: "#kontak" },
+      { label: "Layanan Ambulans", href: "#layanan" },
+      { label: "Mitra & Jejaring RS", href: "#layanan" },
+      { label: "Standar Pelayanan", href: "#kontak" },
+    ],
+  },
+  {
+    title: "Tautan Cepat",
+    items: [
+      { label: "Berita Terkini", href: "#berita" },
+      { label: "Edukasi P3K & CPR", href: "#berita" },
+      { label: "Tanya Jawab (FAQ)", href: "#kontak" },
+      { label: "Hubungi Kami", href: "#kontak" },
+      { label: "Alur Rujukan Pasien", href: "#layanan" },
+    ],
+  },
+];
+
+const SOCIALS = [
+  { label: "Instagram", href: "https://instagram.com", color: "text-pink-400" },
+  { label: "Threads", href: "https://threads.net", color: "text-slate-300" },
+  { label: "YouTube", href: "https://youtube.com", color: "text-red-500" },
+];
+
+const iconWrap =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-800/90 text-red-400 transition-colors group-hover:border-red-500";
+const headingCls =
+  "border-l-2 border-red-500 pl-2.5 text-sm font-bold uppercase tracking-wider text-slate-200";
+const linkCls =
+  "inline-block text-slate-400 transition duration-150 hover:translate-x-1 hover:text-white";
 
   const handleSearch = (event) => {
     event.preventDefault();
@@ -175,14 +234,14 @@ export default function DashboardPage() {
     }
 
     const foundIndex = services.findIndex((service) =>
-      `${service.name} ${service.title} ${service.description}`
+      `${service.nama} ${service.deskripsi}`
         .toLowerCase()
         .includes(query)
     );
 
     if (foundIndex !== -1) {
       setActiveService(foundIndex);
-      setSearchMessage(`Layanan "${services[foundIndex].name}" ditemukan.`);
+      setSearchMessage(`Layanan "${services[foundIndex].nama}" ditemukan.`);
       document.getElementById("layanan")?.scrollIntoView({
         behavior: "smooth",
       });
@@ -194,41 +253,59 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#f7f8fc] font-sans text-gray-900">
-      {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-[1100px] items-center gap-5 px-5 py-3 justify-between">
-          <a href="#beranda" className="shrink-0">
-            <img
-              src="/../public/image/logo.png"
-              alt="Logo PSC 119"
-              className="h-11 w-10 object-contain"
-            />
-          </a>
+  <main className="min-h-screen overflow-x-clip bg-[#f7f8fc] font-sans text-gray-900">
+  {/* NAVBAR */}
+  <nav className={`${pinned ? "sticky" : "relative"} top-0 z-50`}>
+  <div
+    className={`mx-auto bg-white transition-all duration-300 ease-in-out ${
+      floating
+        ? "w-[calc(100%-2rem)] max-w-[1100px] translate-y-4 rounded-[30px] bg-white/90 shadow-lg backdrop-blur-md"
+        : "w-full max-w-full translate-y-0 rounded-none shadow-sm"
+    }`}
+  >
+    <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-5 px-5 py-3 sm:px-6">
+      <a href="#beranda" className="shrink-0">
+        <img
+          src="/../public/image/logo.png"
+          alt="Logo PSC 119"
+          className="h-11 w-10 object-contain"
+        />
+      </a>
 
-          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 sm:gap-x-7">
-            {[
-              ["Beranda", "#beranda"],
-              ["Layanan", "#layanan"],
-              ["Panduan", "#panduan"],
-              ["Berita", "#berita"],
-              ["Ulasan", "#ulasan"],
-              ["Kontak", "#kontak"],
-            ].map(([label, href]) => (
-              <a
-                key={label}
-                href={href}
-                className="text-xs font-semibold text-gray-700 transition hover:text-red-700 sm:text-sm"
-              >
-                {label}
-              </a>
-            ))}
-          </div>
-          <div className="text-white/0 select-none">
-            pp
-          </div>
-        </div>
-      </nav>
+      <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 sm:gap-x-7">
+        {[
+          ["Beranda", "#beranda"],
+          ["Layanan", "#layanan"],
+          ["Panduan", "#panduan"],
+          ["Berita", "#berita"],
+          ["Ulasan", "#ulasan"],
+          ["Kontak", "#kontak"],
+        ].map(([label, href]) => (
+          <a
+            key={label}
+            href={href}
+            className="text-xs font-semibold text-gray-700 transition hover:text-red-700 sm:text-sm"
+          >
+            {label}
+          </a>
+        ))}
+      </div>
+
+      {/* Tombol X: div "pp" diganti jadi fungsi */}
+      <button
+        type="button"
+        onClick={() => setPinned(false)}
+        aria-label="Berhenti mengikuti navbar"
+        tabIndex={floating ? 0 : -1}
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-red-700 ${
+          floating ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      >
+        ✕
+      </button>
+    </div>
+  </div>
+</nav>
 
       {/* HERO */}
       <header
@@ -287,6 +364,12 @@ export default function DashboardPage() {
               </p>
             )}
 
+            {contentError && (
+              <p className="mt-2 text-xs font-medium text-yellow-100" role="alert">
+                {contentError}
+              </p>
+            )}
+
             <p className="mt-3 text-xs text-white/80">
               Apabila sangat darurat, klik Telepon 119.
             </p>
@@ -334,17 +417,17 @@ export default function DashboardPage() {
           <EmergencyButton />
         </div>
 
-        <div className="overflow-hidden rounded-2xl bg-gray-200 shadow-lg">
-          <img
-            src="/../public/image/Group 63.png"
-            alt="Ambulans PSC 119"
-            className="h-64 w-full object-cover md:h-80"
-          />
-        </div>
+        <div className="overflow-hidden rounded-2xl">
+        <img
+          src="/image/intro.webp"
+          alt="Ambulans PSC 119"
+          className="h-64 w-full object-contain md:h-80"
+        />
+      </div>
       </section>
 
       {/* LAYANAN */}
-      <section id="layanan" className="scroll-mt-20 bg-white py-14 sm:py-16">
+      <section id="layanan" className="scroll-mt-20 bg-white py-14 sm:py-16" mb-50>
         <div className="mx-auto max-w-[1100px] px-5">
           <SectionTitle>Layanan Tersedia</SectionTitle>
 
@@ -355,7 +438,7 @@ export default function DashboardPage() {
           >
             {services.map((service, index) => (
               <button
-                key={service.name}
+                key={service.id}
                 type="button"
                 role="tab"
                 aria-selected={activeService === index}
@@ -366,36 +449,48 @@ export default function DashboardPage() {
                     : "bg-white text-gray-700 hover:bg-red-50 hover:text-red-700"
                 }`}
               >
-                {service.name}
+                {service.nama}
               </button>
             ))}
           </div>
 
           <div
-            className="mt-8 grid items-center gap-7 md:grid-cols-[240px_1fr]"
+            key={activeService}
+            className="mt-8 grid items-center gap-7 animate-fade-up md:grid-cols-[240px_1fr]"
             role="tabpanel"
           >
-            <div className="grid min-h-48 place-items-center rounded-2xl bg-gradient-to-br from-blue-900 via-blue-500 to-slate-200 p-6">
-              <div className="grid h-24 w-24 place-items-center rounded-2xl bg-white/90 text-4xl font-bold text-red-700 shadow-lg">
-                119
-              </div>
+            <div className="grid min-h-48 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900 via-blue-500 to-slate-200">
+              {selectedService?.foto ? (
+                <img
+                  src={getImageUrl(selectedService.foto)}
+                  alt={selectedService.nama}
+                  className="h-full min-h-48 w-full object-cover"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : (
+                <div className="grid h-24 w-24 place-items-center rounded-2xl bg-white/90 text-4xl font-bold text-red-700 shadow-lg">
+                  119
+                </div>
+              )}
             </div>
 
             <div>
               <h3 className="text-xl font-bold text-gray-900">
-                {selectedService.title}
+                {selectedService?.nama || "Memuat layanan..."}
               </h3>
 
               <p className="mt-2 max-w-xl text-sm leading-6 text-gray-600">
-                {selectedService.description}
+                {selectedService?.deskripsi || "Belum ada layanan tersedia."}
               </p>
 
               <ul className="my-5 grid gap-3 text-sm sm:grid-cols-2">
-                {selectedService.checks.map((item) => (
+                {selectedService?.checks?.map((item) => (
                   <li key={item} className="flex items-center gap-2">
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-700 text-xs text-white">
+                    {/* <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-700 text-xs text-white">
                       ✓
-                    </span>
+                    </span> */}
                     {item}
                   </li>
                 ))}
@@ -405,22 +500,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-8 border-t border-gray-100 pt-8">
-            {[
-              "ANAK NEGERI",
-              "Siloam",
-              "Aita Hospital",
-              "BRAWIJAYA",
-              "Citra Medika",
-            ].map((partner) => (
-              <div
-                key={partner}
-                className="grid h-16 w-16 place-items-center rounded-full border-2 border-red-700 px-1 text-center text-[9px] font-bold text-red-700"
-              >
-                {partner}
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -440,26 +519,25 @@ export default function DashboardPage() {
           </p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map((step) => (
-              <article
-                key={step.number}
-                className="rounded-lg border-t-4 border-red-700 bg-white px-5 py-6 text-center text-gray-900"
-              >
-                <div className="mx-auto mb-4 grid h-9 w-9 place-items-center rounded-full bg-red-700 text-sm font-bold text-white">
-                  {step.number}
-                </div>
+              {steps.map((step, i) => (
+                <Reveal key={step.number} delay={i * 100} className="h-full">
+                  <article className="h-full rounded-lg border-t-4 border-red-700 bg-white px-5 py-6 text-center text-gray-900">
+                    <div className="mx-auto mb-4 grid h-9 w-9 place-items-center rounded-full bg-red-700 text-sm font-bold text-white">
+                                {step.number}
+                              </div>
 
-                <h3 className="text-xs font-bold">{step.title}</h3>
+                              <h3 className="text-xs font-bold">{step.title}</h3>
 
-                <p className="my-4 text-xs leading-6 text-gray-600">
-                  {step.description}
-                </p>
+                              <p className="my-4 text-xs leading-6 text-gray-600">
+                                {step.description}
+                              </p>
 
-                <b className="text-[10px] uppercase text-red-700">
-                  {step.note}
-                </b>
-              </article>
-            ))}
+                              <b className="text-[10px] uppercase text-red-700">
+                                {step.note}
+                              </b>
+                    </article>
+                  </Reveal>
+              ))}
           </div>
         </div>
       </section>
@@ -471,7 +549,9 @@ export default function DashboardPage() {
       >
         <div className="mx-auto max-w-[1100px] px-5">
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-            <SectionTitle light>Berita &amp; Informasi Edukasi</SectionTitle>
+            <Reveal>
+              <SectionTitle light>Berita &amp; Informasi Edukasi</SectionTitle>
+            </Reveal>
             <a
               href="#berita"
               className="text-xs font-semibold text-white hover:underline"
@@ -481,44 +561,46 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
-            {news.map((item) => (
+            {news.map((item, index) => (
               <article
-                key={item.title}
-                className={`flex h-72 flex-col justify-end rounded-xl bg-gradient-to-b ${item.style} p-5 shadow-lg transition hover:-translate-y-1`}
+                key={item.id}
+                className={`flex h-72 flex-col justify-end rounded-xl bg-gradient-to-b ${["from-slate-500 to-slate-900", "from-slate-400 to-slate-800", "from-slate-300 to-slate-700"][index]} bg-cover bg-center p-5 shadow-lg transition hover:-translate-y-1`}
+                style={item.foto ? { backgroundImage: `linear-gradient(to bottom, transparent 20%, rgba(15, 23, 42, .92)), url("${getImageUrl(item.foto)}")` } : undefined}
               >
                 <time className="mb-3 w-fit rounded-md bg-white px-3 py-2 text-[11px] font-semibold text-gray-800">
-                  {item.date}
+                  {new Date(item.tanggal_terbit || item.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                 </time>
                 <h3 className="max-w-[220px] text-lg font-bold text-white">
-                  {item.title}
+                  {item.judul}
                 </h3>
               </article>
             ))}
+            {!news.length && <p className="text-sm text-white/80">Belum ada berita yang diterbitkan.</p>}
           </div>
         </div>
       </section>
 
       {/* ULASAN */}
-      <section
-        id="ulasan"
-        className="scroll-mt-20 bg-[#f7f8fc] py-14 sm:py-16"
-      >
+      <section id="ulasan" className="scroll-mt-20 bg-[#f7f8fc] py-14 sm:py-16">
         <div className="mx-auto max-w-[900px] px-5">
           <h2 className="text-center text-2xl font-bold text-gray-900 sm:text-3xl">
             Survey Kepuasan Masyarakat
           </h2>
 
           <p className="mx-auto mb-12 mt-4 max-w-2xl text-center text-sm leading-6 text-gray-500">
-            Bukti nyata respon cepat dan transparansi pelayanan
-            kegawatdaruratan medis{" "}
-            <b>PSC 119 Dinas Kesehatan Kota Depok</b>. Suara warga adalah tolak
-            ukur integritas kami.
+            Bukti nyata respon cepat dan transparansi pelayanan kegawatdaruratan
+            medis <b>PSC 119 Dinas Kesehatan Kota Depok</b>. Suara warga adalah
+            tolak ukur integritas kami.
           </p>
 
-          <div className="space-y-7 px-3 sm:px-8">
+          <div className="space-y-12 px-3 sm:px-8">
             {reviews.map((review, index) => (
-              <div key={review.initials}>
-                <article className="relative max-w-[420px] rounded-lg bg-white p-4 text-xs shadow-md">
+              <div key={review.initials} className="flex flex-col gap-6">
+                {/* Ulasan warga: kiri */}
+              <Reveal
+                from="left"
+                className="w-full max-w-[420px] self-start sm:w-[60%] sm:max-w-none">
+                <article className="relative rounded-lg bg-white p-4 text-xs shadow-md">
                   <div
                     className={`absolute -left-3 -top-2 grid h-7 w-7 place-items-center rounded-full text-[9px] font-bold text-white ${
                       review.blue ? "bg-blue-600" : "bg-pink-600"
@@ -553,10 +635,17 @@ export default function DashboardPage() {
                       {review.tag}
                     </span>
                   </div>
-                </article>
-
-                <article className="relative ml-auto mt-5 max-w-[380px] rounded-lg bg-white p-4 text-xs shadow-md">
-                  <div className="absolute -right-3 -top-2 grid h-7 w-7 place-items-center rounded-full bg-red-700 text-[9px] font-bold text-white">
+              </article>
+            </Reveal>
+                
+                {/* Balasan dispatcher: kanan */}
+                <Reveal
+                  from="right"
+                  delay={150}
+                  className="w-full max-w-[380px] self-end sm:w-[55%] sm:max-w-none"
+                >
+                  <article className="relative rounded-lg bg-white p-4 text-xs shadow-md">
+                    <div className="absolute -right-3 -top-2 grid h-7 w-7 place-items-center rounded-full bg-red-700 text-[9px] font-bold text-white">
                     119
                   </div>
 
@@ -570,7 +659,8 @@ export default function DashboardPage() {
                   <q className="mt-3 block leading-6 text-gray-700">
                     {dispatcherReplies[index]}
                   </q>
-                </article>
+                  </article>
+                </Reveal>
               </div>
             ))}
           </div>
@@ -594,107 +684,180 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer
-        id="kontak"
-        className="scroll-mt-20 bg-[#6b7080] py-10 text-white"
-      >
-        <div className="mx-auto max-w-[1100px] px-5">
-          <div className="grid gap-10 border-b border-white/30 pb-8 md:grid-cols-[1fr_1.1fr]">
-            <div>
-              <h3 className="mb-6 text-xl font-bold leading-snug">
-                Penanganan Cepat Gawat Darurat dan Pelayanan Ambulans Terpadu
-              </h3>
-
-              <div className="space-y-4 text-xs leading-6">
-                <p className="flex items-center gap-3">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-base text-red-700">
-                    📍
-                  </span>
-                  Jl. Margonda Raya No. 54, Depok, Kecamatan Pancoran Mas, Kota
-                  Depok, Jawa Barat 16431
-                </p>
-
-                <p className="flex items-center gap-3">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-base text-red-700">
-                    ✉
-                  </span>
-                  PSCDEPOK@gmail.com
-                </p>
-
-                <p className="flex items-center gap-3">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-base text-red-700">
-                    ☎
-                  </span>
-                  Hotline (0811-1922-0119)
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-                <h3 className="text-base font-bold">
-                  Butuh Layanan Darurat?
-                  <br />
-                  Klik tombol berikut
-                </h3>
-                <EmergencyButton />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 text-xs">
-                <div>
-                  <b className="mb-3 block text-sm">Siapa kami?</b>
-                  <a href="#kontak" className="mb-2 block hover:underline">
-                    Tentang Kami
-                  </a>
-                  <a href="#kontak" className="mb-2 block hover:underline">
-                    Tim Kami
-                  </a>
-                  <a href="#layanan" className="mb-2 block hover:underline">
-                    Layanan
-                  </a>
-                  <a href="#layanan" className="mb-2 block hover:underline">
-                    Mitra
-                  </a>
-                </div>
-
-                <div>
-                  <b className="mb-3 block text-sm">Tautan Cepat</b>
-                  <a href="#berita" className="mb-2 block hover:underline">
-                    Berita
-                  </a>
-                  <a href="#kontak" className="mb-2 block hover:underline">
-                    FAQ
-                  </a>
-                  <a href="#kontak" className="mb-2 block hover:underline">
-                    Kontak
-                  </a>
-                </div>
-
-                <div>
-                  <b className="mb-3 block text-sm">Media Sosial</b>
-                  <a href="#kontak" className="mb-2 block hover:underline">
-                    Instagram
-                  </a>
-                  <a href="#kontak" className="mb-2 block hover:underline">
-                    Threads
-                  </a>
-                  <a href="#kontak" className="mb-2 block hover:underline">
-                    Youtube
-                  </a>
-                </div>
-              </div>
-            </div>
+            {/* FOOTER */}
+    <footer
+      id="kontak"
+      className="w-full scroll-mt-20 border-t border-slate-600/60 bg-[#243042] text-slate-100"
+    >
+      <div className="mx-auto max-w-7xl px-4 pb-12 pt-14 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-10 flex flex-col justify-between gap-4 border-b border-slate-600/50 pb-6 md:flex-row md:items-end">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-red-400">
+              Dinas Kesehatan Kota Depok
+            </p>
+            <h2 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+              UPTD PSC 119
+            </h2>
           </div>
 
-          <div className="flex flex-wrap justify-between gap-3 pt-5 text-[10px] text-white/80">
-            <span>Copyright 2026 by Dinkes All Right Reserved.</span>
-            <span>
-              Kebijakan Privasi · Syarat Penggunaan · Aksesibilitas
-            </span>
+          <div className="flex flex-col gap-4 md:items-end">
+            <p className="max-w-md text-xs leading-relaxed text-slate-300 md:text-right">
+              Pusat Pelayanan Keselamatan Terpadu Tanggap Darurat Medis 24 Jam Kota Depok.
+            </p>
           </div>
         </div>
-      </footer>
+
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-12 lg:gap-6">
+          {/* Kolom link */}
+          {FOOTER_LINKS.map((group) => (
+            <div key={group.title} className="space-y-4 lg:col-span-2">
+              <h3 className={headingCls}>{group.title}</h3>
+              <ul className="space-y-2.5 text-sm">
+                {group.items.map((item) => (
+                  <li key={item.label}>
+                    <a href={item.href} className={linkCls}>
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          {/* Kanal Resmi */}
+          <div className="space-y-4 lg:col-span-2">
+            <h3 className={headingCls}>Kanal Resmi</h3>
+            <ul className="space-y-2.5 text-sm">
+              {SOCIALS.map((s) => (
+                <li key={s.label}>
+                  <a
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-slate-400 transition duration-150 hover:translate-x-1 hover:text-white"
+                  >
+                    <span className={`h-2 w-2 shrink-0 rounded-full bg-current ${s.color}`} />
+                    <span>{s.label}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Kontak Kami */}
+          <div className="space-y-4 lg:col-span-3">
+            <h3 className={headingCls}>Kontak Kami</h3>
+
+            <div className="space-y-3.5 pt-1">
+              {/* Alamat */}
+              <div className="group flex items-start gap-3">
+                <div className={iconWrap}>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="block text-xs font-medium text-slate-400">Kantor Operasional:</span>
+                  <span className="text-xs font-medium leading-normal text-slate-200">
+                    {contact?.alamat || "Informasi alamat belum tersedia."}
+                  </span>
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="group flex items-start gap-3">
+                <div className={iconWrap}>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-xs font-medium text-slate-400">Surat Elektronik:</span>
+                  {contact?.email ? (
+                    <a
+                      href={`mailto:${contact.email}`}
+                      className="break-all text-xs text-slate-200 underline-offset-2 transition-colors hover:text-white hover:underline"
+                    >
+                      {contact.email}
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-200">Email belum tersedia.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Hotline */}
+              <div className="group flex items-start gap-3">
+                <div className={iconWrap}>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="block text-xs font-medium text-slate-400">Hotline / Telp:</span>
+                  <a
+                    href={`tel:${String(contact?.hotline || contact?.no_darurat || "119").replace(/\D/g, "")}`}
+                    className="font-mono text-xs font-semibold text-slate-200 transition-colors hover:text-white"
+                  >
+                    {contact?.hotline || contact?.no_darurat || "119"}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Lokasi Posko Siaga (Google Maps) */}
+          <div className="space-y-4 md:col-span-2 lg:col-span-3">
+            <h3 className={headingCls}>Lokasi Posko Siaga</h3>
+
+            <div className="relative overflow-hidden rounded-xl border border-slate-600/60 bg-slate-800 shadow-md">
+              <iframe
+                title="Lokasi PSC 119 Dinas Kesehatan Kota Depok"
+                src={MAP_EMBED_URL}
+                className="h-44 w-full border-0"
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              <a
+                href={MAP_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 shadow-md transition hover:bg-slate-50"
+              >
+                Buka di Maps
+                <svg className="h-3.5 w-3.5 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bar legal */}
+      <div className="border-t border-slate-600/50 bg-[#1a2332] py-6">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-xs text-slate-300 sm:px-6 md:flex-row lg:px-8">
+          <p className="text-center md:text-left">
+            Copyright © 2026{" "}
+            <span className="font-semibold">Dinas Kesehatan Kota Depok</span>. Hak Cipta
+            Dilindungi Undang-Undang.
+          </p>
+
+          <nav aria-label="Legal Links" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <a href="#" className="transition-colors hover:text-white">Kebijakan Privasi</a>
+            <span className="hidden text-slate-600 sm:inline">•</span>
+            <a href="#" className="transition-colors hover:text-white">Syarat Penggunaan</a>
+            <span className="hidden text-slate-600 sm:inline">•</span>
+            <a href="#" className="transition-colors hover:text-white">Aksesibilitas</a>
+            <span className="hidden text-slate-600 sm:inline">•</span>
+            <a href="#" className="transition-colors hover:text-white">Maklumat Pelayanan</a>
+          </nav>
+        </div>
+      </div>
+    </footer>
     </main>
   );
 }

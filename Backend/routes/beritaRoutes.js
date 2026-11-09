@@ -1,6 +1,7 @@
 const express = require('express');
 const beritaController = require('../controllers/beritaController');
 const { protects } = require('../middleware/protect');
+const { imageUpload } = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -16,8 +17,8 @@ router.get('/admin/:id', protects, beritaController.getBeritaById);
 router.get('/slug/:slug', beritaController.getBeritaBySlug);
 router.get('/', beritaController.getAllBerita);
 router.get('/:id', beritaController.getBeritaById);
-router.post('/', protects, beritaController.createBerita);
-router.put('/:id', protects, beritaController.updateBerita);
+router.post('/', protects, imageUpload.single('foto'), beritaController.createBerita);
+router.put('/:id', protects, imageUpload.single('foto'), beritaController.updateBerita);
 router.delete('/:id', protects, beritaController.deleteBerita);
 
 module.exports = router;

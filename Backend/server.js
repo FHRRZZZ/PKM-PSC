@@ -8,12 +8,15 @@ const beritaRoutes = require('./routes/beritaRoutes');
 const faqRoutes = require('./routes/faqRoutes');
 const kontakRoutes = require('./routes/kontakRoutes');
 const layananRoutes = require('./routes/layananRoutes');
+const path = require('path');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admins', adminRoutes);
@@ -38,6 +41,12 @@ app.use((error, req, res, next) => {
     const status = Number(error.status || error.statusCode);
     if (status >= 400 && status < 500) {
         return res.status(status).json({ message: 'Invalid request body' });
+    }
+    if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json({ message: 'Ukuran foto maksimal 5 MB' });
+        }
+        return res.status(400).json({ message: 'Foto harus berformat JPG atau PNG' });
     }
     console.error(error);
     return res.status(500).json({ message: 'Server error' });

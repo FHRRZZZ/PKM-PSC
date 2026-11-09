@@ -58,6 +58,7 @@ exports.getBeritaBySlug = async (req, res) => {
 exports.createBerita = async (req, res) => {
     try {
         const { judul, kategori_id, deskripsi, foto, status, tanggal_terbit } = req.body || {};
+        const fotoPath = req.file ? `/uploads/${req.file.filename}` : (foto || null);
         if (!judul || !String(judul).trim() || !deskripsi || !String(deskripsi).trim()) {
             return res.status(400).json({ message: 'judul and deskripsi are required' });
         }
@@ -89,7 +90,7 @@ exports.createBerita = async (req, res) => {
             judul: String(judul).trim(),
             kategori_id: Number(kategori_id),
             deskripsi: String(deskripsi).trim(),
-            foto: foto || null,
+            foto: fotoPath,
             slug,
             status: status || 'draft',
             tanggal_terbit: tanggal_terbit || (status === 'terbit' ? new Date() : null)
@@ -116,6 +117,9 @@ exports.updateBerita = async (req, res) => {
 
         const { judul, kategori_id, deskripsi, foto, status, tanggal_terbit } = req.body || {};
         const updates = {};
+        if (req.file) {
+            updates.foto = `/uploads/${req.file.filename}`;
+        }
         if (judul !== undefined) {
             if (!String(judul).trim()) {
                 return res.status(400).json({ message: 'judul cannot be empty' });
@@ -149,7 +153,7 @@ exports.updateBerita = async (req, res) => {
             }
             updates.deskripsi = String(deskripsi).trim();
         }
-        if (foto !== undefined) {
+        if (foto !== undefined && !req.file) {
             if (foto !== null && typeof foto !== 'string') {
                 return res.status(400).json({ message: 'foto must be a string or null' });
             }

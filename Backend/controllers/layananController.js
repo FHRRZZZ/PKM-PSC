@@ -67,13 +67,17 @@ exports.getLayananBySlug = async (req, res) => {
 exports.createLayanan = async (req, res) => {
     try {
         const body = req.body || {};
+        const foto = req.file ? `/uploads/${req.file.filename}` : (body.foto || null);
         if (typeof body.nama !== 'string' || !body.nama.trim()
             || typeof body.deskripsi !== 'string' || !body.deskripsi.trim()) {
             return res.status(400).json({ message: 'nama and deskripsi are required' });
         }
-        const urutan = body.urutan === undefined ? 0 : body.urutan;
-        const isActive = body.is_active === undefined ? true : body.is_active;
-        const tarifIsActive = body.tarif_is_active === undefined ? false : body.tarif_is_active;
+        const lastUrutan = await Layanan.max('urutan');
+        const urutan = body.urutan === undefined
+            ? (lastUrutan === null ? 0 : Number(lastUrutan) + 1)
+            : body.urutan;
+        const isActive = body.is_active === undefined ? true : body.is_active === true || body.is_active === 'true' ? true : body.is_active;
+        const tarifIsActive = body.tarif_is_active === undefined ? false : body.tarif_is_active === true || body.tarif_is_active === 'true' ? true : body.tarif_is_active;
         const tarif = body.tarif === undefined ? null : body.tarif;
         if (!isNonNegativeInteger(urutan)) {
             return res.status(400).json({ message: 'urutan must be a non-negative integer' });
@@ -96,7 +100,7 @@ exports.createLayanan = async (req, res) => {
             nama: body.nama.trim(),
             slug,
             deskripsi: body.deskripsi.trim(),
-            foto: body.foto || null,
+            foto,
             tarif,
             tarif_is_active: tarifIsActive,
             urutan: Number(urutan),
@@ -121,6 +125,9 @@ exports.updateLayanan = async (req, res) => {
 
         const body = req.body || {};
         const updates = {};
+        if (req.file) {
+            updates.foto = `/uploads/${req.file.filename}`;
+        }
         for (const field of ['nama', 'deskripsi']) {
             if (body[field] !== undefined) {
                 if (typeof body[field] !== 'string' || !body[field].trim()) {
@@ -135,7 +142,7 @@ exports.updateLayanan = async (req, res) => {
                 return res.status(400).json({ message: 'slug is invalid' });
             }
         }
-        if (body.foto !== undefined) {
+        if (body.foto !== undefined && !req.file) {
             if (body.foto !== null && typeof body.foto !== 'string') {
                 return res.status(400).json({ message: 'foto must be a string or null' });
             }
@@ -149,10 +156,10 @@ exports.updateLayanan = async (req, res) => {
         }
         for (const field of ['tarif_is_active', 'is_active']) {
             if (body[field] !== undefined) {
-                if (typeof body[field] !== 'boolean') {
+                if (typeof body[field] !== 'boolean' && !['true', 'false'].includes(body[field])) {
                     return res.status(400).json({ message: `${field} must be a boolean` });
                 }
-                updates[field] = body[field];
+                updates[field] = body[field] === true || body[field] === 'true';
             }
         }
         if (body.urutan !== undefined) {

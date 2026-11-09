@@ -1,219 +1,227 @@
-import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Asterisk, 
-  Newspaper, 
-  HelpCircle, 
-  PhoneCall, 
-  Upload,
-  ShieldCheck
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+import { Button } from '../../components/Button';
+import MessageError from '../../components/MessageError';
+import { createFaq, getFaqAdminById, updateFaq } from '../../api/faq';
 
-const FormFaq = () => {
-  const [formData, setFormData] = useState({
-    namaLayanan: '',
-    deskripsi: '',
-    tampilkan: false,
-    foto: null
-  });
+const initial = {
+  pertanyaan: '',
+  jawaban: '',
+  urutan: 0,
+  is_active: true,
+};
+
+export default function FormFaq() {
+  const [form, setForm] = useState(initial);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const id = params.get('id');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadFaq = async () => {
+      if (!id) {
+        setForm(initial);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const item = await getFaqAdminById(id);
+
+        if (active) {
+          setForm({
+            pertanyaan: item.pertanyaan || '',
+            jawaban: item.jawaban || '',
+            urutan: item.urutan ?? 0,
+            is_active: item.is_active ?? true,
+          });
+        }
+      } catch (err) {
+        if (active) {
+          setError(err.message || 'Gagal memuat data FAQ.');
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadFaq();
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  const handleChange = (field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const submit = async (event) => {
+    event.preventDefault();
+
+    if (saving) return;
+
+    setSaving(true);
+    setError('');
+
+    try {
+      if (id) {
+        await updateFaq(id, form);
+      } else {
+        await createFaq(form);
+      }
+
+      navigate('/admin/faq');
+    } catch (err) {
+      setError(err.message || 'Gagal menyimpan FAQ.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <div className="flex min-h-screen bg-[#FDFBFB] font-sans text-gray-800">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-100 flex flex-col justify-between p-6 shrink-0">
-        <div>
-          {/* Logo / Header */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-full bg-red-700 flex items-center justify-center text-white font-bold text-xs shadow-md">
-              119
-            </div>
-            <h1 className="font-bold text-lg text-gray-900 leading-tight">
-              PSC Dinkes Depok
-            </h1>
-          </div>
-
-          {/* Navigation Menu */}
-          <nav className="space-y-2">
-            <a href="#" className="flex items-center gap-3 px-4 py-3 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
-              <LayoutDashboard className="w-5 h-5 text-gray-700" />
-              <span className="font-medium text-sm">Dashboard</span>
-            </a>
-            
-            <a href="#" className="flex items-center gap-3 px-4 py-3 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
-              <Asterisk className="w-5 h-5 text-gray-700" />
-              <span className="font-medium text-sm">Layanan</span>
-            </a>
-
-            <a href="#" className="flex items-center gap-3 px-4 py-3 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
-              <Newspaper className="w-5 h-5 text-gray-700" />
-              <span className="text-sm">Berita</span>
-            </a>
-
-            <a href="#" className="flex items-center gap-3 px-4 py-3 text-red-700 bg-red-50/60 rounded-xl font-semibold border-l-4 border-red-700 transition-colors">
-              <HelpCircle className="w-5 h-5 text-red-700" />
-              <span className="text-sm">FAQ</span>
-            </a>
-
-            <a href="#" className="flex items-center gap-3 px-4 py-3 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
-              <PhoneCall className="w-5 h-5 text-gray-700" />
-              <span className="font-medium text-sm">Kontak</span>
-            </a>
-          </nav>
-        </div>
-
-        {/* User Profile / Logout */}
-        <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-red-900 text-white flex items-center justify-center font-bold text-sm">
-              <span className="text-xs">👤</span>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-gray-900 leading-none">Siti Rahma</p>
-              <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-800 rounded">
-                Admin Medis
-              </span>
-            </div>
-          </div>
-          <button className="bg-red-800 hover:bg-red-900 text-white text-xs px-3 py-1.5 rounded-lg transition-colors font-medium">
-            Keluar
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-8 overflow-y-auto">
-        {/* Breadcrumb & Page Title */}
+    <DashboardLayout>
+      <div className="min-h-screen min-w-0 bg-slate-50">
+        {/* Header */}
         <div className="mb-6">
-          <p className="text-xs text-gray-500 font-medium mb-1">
-            Admin &gt; <span className="text-gray-800 font-semibold">FAQ</span>
+          <p className="text-xs text-slate-500">
+            Admin &gt; FAQ &gt; <b className="text-slate-800">{id ? 'Edit' : 'Tambah'}</b>
           </p>
-          <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-            CMS FAQ (Tanya Jawab Layanan)
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Kelola pertanyaan umum seputar biaya, armada, jangkauan darurat, dan prosedur rujukan.
+
+          <h1 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
+            {id ? 'Edit FAQ' : 'Tambah FAQ'}
+          </h1>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Tulis jawaban yang ringkas, jelas, dan mudah dipahami.
           </p>
         </div>
 
-        {/* Form Container Card */}
-        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-          <form onSubmit={(e) => e.preventDefault()}>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
-              {/* Kolom Kiri: Input Field Teks */}
-              <div className="lg:col-span-7 space-y-6">
-                
-                {/* Nama Layanan */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
-                    Nama Layanan <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: nama layanan"
-                    className="w-full px-4 py-3.5 text-sm bg-[#F5F5F5] border-none rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 text-gray-800 placeholder:text-gray-400 font-normal"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Gunakan judul yang ringkas, jelas, dan menggambarkan jenis layanan medis tersebut.
+        {/* Error */}
+        <div className="mb-6">
+          <MessageError
+            message={error}
+            onClose={() => setError('')}
+          />
+        </div>
+
+        {loading ? (
+          <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
+            Memuat data FAQ...
+          </div>
+        ) : (
+          <form
+            onSubmit={submit}
+            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
+          >
+            <div className="space-y-5 sm:space-y-6">
+              {/* Pertanyaan */}
+              <label className="block text-sm font-semibold text-slate-800">
+                Pertanyaan *
+
+                <input
+                  type="text"
+                  value={form.pertanyaan}
+                  onChange={(event) =>
+                    handleChange('pertanyaan', event.target.value)
+                  }
+                  required
+                  maxLength={255}
+                  className="mt-2 w-full min-w-0 rounded-xl border border-slate-200 px-3 py-3 text-sm font-normal text-slate-700 outline-none transition-colors focus:border-red-500 focus:ring-2 focus:ring-red-500/10 sm:px-4"
+                  placeholder="Contoh: Apakah layanan ambulans tersedia 24 jam?"
+                />
+              </label>
+
+              {/* Jawaban */}
+              <label className="block text-sm font-semibold text-slate-800">
+                Jawaban *
+
+                <textarea
+                  value={form.jawaban}
+                  onChange={(event) =>
+                    handleChange('jawaban', event.target.value)
+                  }
+                  required
+                  rows={7}
+                  className="mt-2 w-full min-w-0 resize-y rounded-xl border border-slate-200 px-3 py-3 text-sm font-normal leading-relaxed text-slate-700 outline-none transition-colors focus:border-red-500 focus:ring-2 focus:ring-red-500/10 sm:px-4"
+                  placeholder="Tulis jawaban FAQ"
+                />
+              </label>
+
+              {/* Urutan */}
+              <label className="block text-sm font-semibold text-slate-800 sm:max-w-xs">
+                Urutan
+
+                <input
+                  type="number"
+                  min="0"
+                  value={form.urutan}
+                  onChange={(event) =>
+                    handleChange('urutan', Number(event.target.value))
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-normal text-slate-700 outline-none transition-colors focus:border-red-500 focus:ring-2 focus:ring-red-500/10 sm:px-4"
+                />
+
+                <span className="mt-1 block text-xs font-normal text-slate-400">
+                  Angka lebih kecil akan ditampilkan lebih dahulu.
+                </span>
+              </label>
+
+              {/* Status */}
+              <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-800">
+                    Tampilkan di website
+                  </p>
+                  <p className="mt-1 text-xs font-normal text-slate-500">
+                    FAQ akan terlihat oleh pengunjung jika diaktifkan.
                   </p>
                 </div>
 
-                {/* Deskripsi Singkat / Ringkasan */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
-                    Deskripsi Singkat / Ringkasan
-                  </label>
-                  <textarea
-                    rows={5}
-                    placeholder="Jelaskan layanan di bagian ini"
-                    className="w-full px-4 py-3.5 text-sm bg-[#F5F5F5] border-none rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 text-gray-800 placeholder:text-gray-400 font-normal resize-none"
-                  ></textarea>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Ringkasan akan ditampilkan sebagai preview pada daftar layanan ke publik
-                  </p>
-                </div>
-
-              </div>
-
-              {/* Kolom Kanan: Upload Foto Utama Layanan */}
-              <div className="lg:col-span-5 flex flex-col justify-between">
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">
-                    Foto Utama Layanan <span className="text-red-500">*</span>
-                  </label>
-                  
-                  {/* Upload Dropzone Container */}
-                  <div className="w-full bg-[#F5F5F5] rounded-2xl p-8 flex flex-col items-center justify-center text-center h-[290px] border-2 border-dashed border-transparent hover:border-gray-300 transition-all cursor-pointer">
-                    {/* Circle Icon Container */}
-                    <div className="w-12 h-12 rounded-full bg-red-100/70 flex items-center justify-center text-red-700 mb-4">
-                      <Upload className="w-5 h-5 stroke-[2.5]" />
-                    </div>
-
-                    <h4 className="font-bold text-base text-gray-900 mb-1">
-                      Klik atau seret foto ke sini
-                    </h4>
-                    <p className="text-xs text-gray-500 leading-relaxed max-w-[240px] mb-6">
-                      Format JPG atau PNG (Maks. 5MB, resolusi rekomendasi 1200×630px)
-                    </p>
-
-                    <button 
-                      type="button"
-                      className="bg-gray-200/80 hover:bg-gray-300 text-gray-800 font-semibold text-xs px-5 py-2 rounded-lg transition-colors"
-                    >
-                      Pilih Berkas Komputer
-                    </button>
-                  </div>
-
-                  {/* Info Box Bawah Upload */}
-                  <div className="mt-4 bg-[#F5F5F5] rounded-xl p-3.5 flex items-start gap-2.5">
-                    <ShieldCheck className="w-4 h-4 text-gray-700 shrink-0 mt-0.5" />
-                    <p className="text-xs text-gray-600 font-medium leading-tight">
-                      Foto utama akan otomatis dioptimasi untuk rasio website serta pratinjau pesan darurat.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Toggle Tampilkan di Website Banner */}
-            <div className="mt-8 bg-[#F5F5F5] rounded-2xl p-5 flex items-center justify-between">
-              <div>
-                <h4 className="font-bold text-sm text-gray-900">
-                  Tampilkan di website
-                </h4>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Status layanan akan langsung terlihat oleh pengunjung jika diaktifkan.
-                </p>
-              </div>
-              
-              {/* Toggle Switch */}
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" />
-                <div className="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-700"></div>
+                <input
+                  type="checkbox"
+                  checked={form.is_active}
+                  onChange={(event) =>
+                    handleChange('is_active', event.target.checked)
+                  }
+                  className="h-5 w-5 shrink-0 cursor-pointer accent-red-700"
+                />
               </label>
             </div>
 
-            {/* Form Action Buttons */}
-            <div className="mt-8 flex justify-end items-center gap-3">
-              <button
+            {/* Actions */}
+            <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+              <Button
                 type="button"
-                className="px-8 py-2.5 border border-red-800 text-gray-900 hover:bg-gray-50 font-semibold text-sm rounded-xl transition-all"
+                variant="outline"
+                onClick={() => navigate('/admin/faq')}
+                disabled={saving}
+                className="w-full sm:w-auto"
               >
                 Batal
-              </button>
-              <button
+              </Button>
+
+              <Button
                 type="submit"
-                className="px-8 py-2.5 bg-red-800 hover:bg-red-900 text-white font-semibold text-sm rounded-xl transition-all shadow-sm active:scale-95"
+                disabled={saving}
+                className="w-full sm:w-auto"
               >
-                Simpan
-              </button>
+                {saving ? 'Menyimpan...' : 'Simpan'}
+              </Button>
             </div>
           </form>
-        </div>
-      </main>
-    </div>
+        )}
+      </div>
+    </DashboardLayout>
   );
-};
-
-export default FormFaq;
+}

@@ -24,7 +24,8 @@ export const setUnauthorizedHandler = (fn) => { onUnauthorized = fn; };
  */
 export async function request(path, { method = 'GET', body, auth = true } = {}) {
   const headers = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  if (body !== undefined && !isFormData) headers['Content-Type'] = 'application/json';
   const token = tokenStorage.get();
   if (auth && token) headers.Authorization = `Bearer ${token}`;
 
@@ -33,7 +34,7 @@ export async function request(path, { method = 'GET', body, auth = true } = {}) 
     res = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? (isFormData ? body : JSON.stringify(body)) : undefined,
     });
   } catch {
     throw new ApiError('Tidak dapat terhubung ke server', 0);
