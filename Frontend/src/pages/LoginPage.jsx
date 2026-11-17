@@ -36,12 +36,12 @@ export default function LoginPage() {
         <div className="my-auto max-w-lg">
           {/* Logo / Shield Badge */}
           <div className="mb-8">
-            <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center p-3 shadow-lg border border-white/20">
-              {/* Anda bisa mengganti ini dengan tag <img> logo aslinya */}
-              <div className="text-center font-bold">
-                <span className="block text-xs bg-red-600 text-white rounded px-1 mb-0.5">119</span>
-                <span className="text-[10px] tracking-tighter leading-none block">KOTA DEPOK</span>
-              </div>
+            <div className="w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden">
+              <img 
+                src="/image/logo.png" 
+                alt="Logo Kota Depok 119" 
+                className="w-full h-full object-contain"
+              />
             </div>
           </div>
 
