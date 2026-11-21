@@ -310,8 +310,9 @@ const linkCls =
       {/* HERO */}
       <header
         id="beranda"
-        className="relative bg-gradient-to-r from-[#6e1212] via-[#b72424] to-[#d94646] py-16 text-white sm:py-20"
+        className="relative bg-gradient-to-r from-[#6e1212] via-[#ba2020] to-[#d94646] py-16 text-white sm:py-20"
       >
+        <img src="/image/574c2-ambulans-removebg-preview.png" className="pointer-events-none absolute bottom-10 right-0 w-full object-contain object-right opacity-30 md:right-8 md:w-[45%] md:opacity-70 [mask-image:linear-gradient(to_left,black_60%,transparent)]" aria-hidden="true" alt=""/>
         <div className="mx-auto max-w-[1100px] px-5">
           <div className="max-w-xl">
 

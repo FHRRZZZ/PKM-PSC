@@ -8,6 +8,7 @@ const beritaRoutes = require('./routes/beritaRoutes');
 const faqRoutes = require('./routes/faqRoutes');
 const kontakRoutes = require('./routes/kontakRoutes');
 const layananRoutes = require('./routes/layananRoutes');
+const klinikRoutes = require('./routes/klinikRoutes');
 const path = require('path');
 const multer = require('multer');
 
@@ -24,6 +25,7 @@ app.use('/api/berita', beritaRoutes);
 app.use('/api/faq', faqRoutes);
 app.use('/api/kontak', kontakRoutes);
 app.use('/api/layanan', layananRoutes);
+app.use('/api/klinik', klinikRoutes);
 
 app.get('/api/health', (req, res) => {
     return res.status(200).json({ status: 'ok' });
