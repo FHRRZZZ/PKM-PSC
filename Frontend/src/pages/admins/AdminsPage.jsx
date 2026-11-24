@@ -5,6 +5,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import SearchInput from '../../components/SearchInput';
 import MessageError from '../../components/MessageError';
+import icon from '../../components/ui/Icon';
 
 import { getBeritaAdmin } from '../../api/berita';
 import { getFaqsAdmin } from '../../api/faq';

@@ -31,3 +31,6 @@ export const updateKategoriBerita = (id, payload) =>
 // 409 jika kategori masih dipakai berita
 export const deleteKategoriBerita = (id) =>
   request(`/api/berita/kategori/${id}`, { method: 'DELETE' });
+
+export const getBeritaPublikBySlug = (slug) =>
+  request(`/api/berita/slug/${encodeURIComponent(slug)}`, { auth: false });
