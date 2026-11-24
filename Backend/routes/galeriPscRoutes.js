@@ -1,0 +1,11 @@
+const express = require('express');
+const { protects, requireRole } = require('../middleware/protect');
+const { imageUpload } = require('../middleware/upload');
+const controller = require('../controllers/galeriPscController');
+const router = express.Router();
+const adminOnly = [protects, requireRole('admin', 'superadmin')];
+router.get('/', controller.list);
+router.post('/', ...adminOnly, imageUpload.single('foto'), controller.create);
+router.put('/:id', ...adminOnly, imageUpload.single('foto'), controller.update);
+router.delete('/:id', ...adminOnly, controller.remove);
+module.exports = router;

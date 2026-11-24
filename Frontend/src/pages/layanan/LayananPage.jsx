@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Button } from '../../components/Button';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -10,7 +10,7 @@ import { deleteLayanan, getLayananAdmin, updateLayanan } from '../../api/layanan
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export default function LayananPage() {
+export default function LayananPage({ clinicCatalog = false }) {
   const [items, setItems] = useState([]);
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
@@ -24,7 +24,7 @@ export default function LayananPage() {
   const load = async () => {
     try {
       setLoading(true);
-      const data = await getLayananAdmin();
+      const data = await getLayananAdmin(clinicCatalog ? 'klinik' : 'ambulans');
       setItems(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || 'Gagal mengambil data layanan.');
@@ -104,11 +104,11 @@ export default function LayananPage() {
           </p>
 
           <h1 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
-            CMS Layanan Ambulans
+            {clinicCatalog ? 'Katalog Layanan Klinik' : 'CMS Layanan Ambulans'}
           </h1>
 
           <p className="mt-1 text-sm text-slate-500">
-            Kelola layanan yang tersedia untuk masyarakat.
+            {clinicCatalog ? 'Kelola layanan klinik seperti Gigi, Terapi, Laboratorium, dan layanan lainnya.' : 'Kelola layanan yang tersedia untuk masyarakat.'}
           </p>
         </div>
 
@@ -129,13 +129,23 @@ export default function LayananPage() {
             className="w-full sm:max-w-md"
           />
 
-          <Button
-            type="button"
-            onClick={() => navigate('/admin/layanan/tambah')}
-            className="w-full sm:w-auto"
-          >
-            + Tambah Layanan
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            {clinicCatalog && (
+              <Link
+                to="/admin/klinik/informasi"
+                className="inline-flex w-full items-center justify-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 sm:w-auto"
+              >
+                Edit Informasi Klinik
+              </Link>
+            )}
+            <Button
+              type="button"
+              onClick={() => navigate(`/admin/layanan/tambah${clinicCatalog ? '?jenis=klinik' : ''}`)}
+              className="w-full sm:w-auto"
+            >
+              + Tambah Layanan
+            </Button>
+          </div>
         </div>
 
         {/* Loading */}
@@ -193,8 +203,16 @@ export default function LayananPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-end gap-4 border-t border-slate-100 p-4 text-xs">
-                      <div className="mr-auto flex items-center gap-1">
+                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 p-4 text-xs">
+                      {clinicCatalog && (
+                        <Link
+                          to={`/admin/klinik/kelola?klinik_id=1&layanan_id=${item.id}`}
+                          className="mr-auto rounded-lg bg-red-700 px-3 py-2 font-semibold text-white transition-colors hover:bg-red-800"
+                        >
+                          Lengkapi Data
+                        </Link>
+                      )}
+                      <div className={`${clinicCatalog ? '' : 'mr-auto '}flex items-center gap-1`}>
                         <button
                           type="button"
                           aria-label={`Geser ${item.nama} ke kiri`}
@@ -217,7 +235,7 @@ export default function LayananPage() {
                       <button
                         type="button"
                         onClick={() =>
-                          navigate(`/admin/layanan/tambah?id=${item.id}`)
+                          navigate(`/admin/layanan/tambah?id=${item.id}${clinicCatalog ? '&jenis=klinik' : ''}`)
                         }
                         className="font-semibold text-blue-700 transition-colors hover:text-blue-900"
                       >

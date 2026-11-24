@@ -1,4 +1,8 @@
+import { useLocation } from 'react-router-dom';
+
 export default function Footer({ contact }) {
+    const { pathname } = useLocation();
+    const resolveHref = (href) => href.startsWith('#') && pathname !== '/' ? `/${href}` : href;
 
 
     const MAP_EMBED_URL = 
@@ -10,10 +14,10 @@ export default function Footer({ contact }) {
       {
         title: "Siapa Kami?",
         items: [
-          { label: "Tentang Kami", href: "#kontak" },
-          { label: "Tim Medis & Kru", href: "#kontak" },
-          { label: "Layanan Ambulans", href: "#layanan" },
-          { label: "Mitra & Jejaring RS", href: "#layanan" },
+          { label: "Tentang Kami", href: "/tentang" },
+          { label: "Tim Medis & Kru", href: "/tentang" },
+          { label: "Layanan Ambulans", href: "/layanan" },
+          { label: "Mitra & Jejaring RS", href: "/layanan" },
           { label: "Standar Pelayanan", href: "#kontak" },
         ],
       },
@@ -75,7 +79,7 @@ export default function Footer({ contact }) {
               <ul className="space-y-2.5 text-sm">
                 {group.items.map((item) => (
                   <li key={item.label}>
-                    <a href={item.href} className={linkCls}>
+                    <a href={resolveHref(item.href)} className={linkCls}>
                       {item.label}
                     </a>
                   </li>
@@ -206,13 +210,13 @@ export default function Footer({ contact }) {
           </p>
 
           <nav aria-label="Legal Links" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            <a href="#" className="transition-colors hover:text-white">Kebijakan Privasi</a>
+            <a href="/#kontak" className="transition-colors hover:text-white">Kebijakan Privasi</a>
             <span className="hidden text-slate-600 sm:inline">•</span>
-            <a href="#" className="transition-colors hover:text-white">Syarat Penggunaan</a>
+            <a href="/#kontak" className="transition-colors hover:text-white">Syarat Penggunaan</a>
             <span className="hidden text-slate-600 sm:inline">•</span>
-            <a href="#" className="transition-colors hover:text-white">Aksesibilitas</a>
+            <a href="/#kontak" className="transition-colors hover:text-white">Aksesibilitas</a>
             <span className="hidden text-slate-600 sm:inline">•</span>
-            <a href="#" className="transition-colors hover:text-white">Maklumat Pelayanan</a>
+            <a href="/#kontak" className="transition-colors hover:text-white">Maklumat Pelayanan</a>
           </nav>
         </div>
       </div>

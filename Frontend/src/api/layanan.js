@@ -4,12 +4,12 @@ import { request } from './client';
 // tarif bertipe DECIMAL -> kemungkinan datang sebagai STRING ("150000.00") atau null.
 // foto = STRING (URL/path, maks 255 karakter).
 
-export const getLayananAdmin = () => request('/api/layanan/admin');
-export const getLayananAdminById = (id) => request(`/api/layanan/admin/${id}`);
+export const getLayananAdmin = (jenis = 'ambulans') => request(`/api/layanan/admin?jenis=${jenis}`);
+export const getLayananAdminById = (id, jenis) => request(`/api/layanan/admin/${id}${jenis ? `?jenis=${jenis}` : ''}`);
 
 // Publik: hanya is_active=true
-export const getLayananPublik = () => request('/api/layanan', { auth: false });
-export const getLayananBySlug = (slug) => request(`/api/layanan/slug/${slug}`, { auth: false });
+export const getLayananPublik = (jenis = 'ambulans') => request(`/api/layanan?jenis=${jenis}`, { auth: false });
+export const getLayananBySlug = (slug, jenis) => request(`/api/layanan/slug/${slug}${jenis ? `?jenis=${jenis}` : ''}`, { auth: false });
 
 // payload: { nama, deskripsi, slug?, foto?, tarif?: number|null, tarif_is_active?, urutan?, is_active? }
 // tarif kosong -> kirim null (bukan string kosong).

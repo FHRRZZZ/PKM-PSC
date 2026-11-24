@@ -11,6 +11,7 @@ import { getBeritaAdmin } from '../../api/berita';
 import { getFaqsAdmin } from '../../api/faq';
 import { getKontak } from '../../api/kontak';
 import { getLayananAdmin } from '../../api/layanan';
+import { useAuth } from '../../context/AuthContextBaru';
 
 const typeStyles = {
   Layanan: 'bg-rose-50 text-rose-600',
@@ -35,6 +36,7 @@ const filterStyle =
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { isSuperadmin } = useAuth();
 
   const [data, setData] = useState({
     berita: [],
@@ -55,11 +57,10 @@ export default function AdminDashboard() {
 
     const fetchDashboard = async () => {
       try {
-        const [berita, layanan, faq, kontak] = await Promise.all([
+        const [berita, layanan, faq = [], kontak = []] = await Promise.all([
           getBeritaAdmin(),
           getLayananAdmin(),
-          getFaqsAdmin(),
-          getKontak(),
+          ...(isSuperadmin ? [getFaqsAdmin(), getKontak()] : []),
         ]);
 
         if (isMounted) {
@@ -86,7 +87,7 @@ export default function AdminDashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isSuperadmin]);
 
   // Menggabungkan seluruh konten
   const content = useMemo(() => [
@@ -166,21 +167,20 @@ export default function AdminDashboard() {
       inactive: data.berita.filter((item) => item.status !== 'terbit').length,
       path: '/admin/berita',
     },
-    {
+    ...(isSuperadmin ? [{
       label: 'Pertanyaan FAQ',
       total: data.faq.length,
       active: data.faq.filter((item) => item.is_active).length,
       inactive: data.faq.filter((item) => !item.is_active).length,
       path: '/admin/faq',
-    },
-    {
+    }, {
       label: 'Data Kontak',
       total: data.kontak.length,
       active: data.kontak.length,
       inactive: 0,
       path: '/admin/kontak',
-    },
-  ], [data]);
+    }] : []),
+  ], [data, isSuperadmin]);
 
   return (
     <DashboardLayout>
@@ -205,6 +205,21 @@ export default function AdminDashboard() {
             Memuat data dashboard...
           </div>
         )}
+
+        <section className="mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-red-800 to-[#243042] text-white shadow-sm">
+          <div className="grid gap-5 px-5 py-6 sm:px-7 lg:grid-cols-[1.3fr_1fr] lg:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-200">Ruang kerja CMS</p>
+              <h2 className="mt-2 text-2xl font-bold leading-tight">Kelola informasi PSC 119 dari satu panel</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-red-100/80">Pantau konten yang tampil ke masyarakat dan perbarui informasi penting tanpa berpindah-pindah halaman.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 border-t border-white/15 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+              <div><p className="text-xl font-bold">{data.berita.length}</p><p className="text-[11px] text-white/70">Berita</p></div>
+              <div><p className="text-xl font-bold">{data.layanan.length}</p><p className="text-[11px] text-white/70">Layanan</p></div>
+              <div><p className="text-xl font-bold">24/7</p><p className="text-[11px] text-white/70">Siaga</p></div>
+            </div>
+          </div>
+        </section>
 
         {/* Summary Cards */}
         <section
@@ -269,13 +284,13 @@ export default function AdminDashboard() {
               + Berita Baru
             </button>
 
-            <button
+            {isSuperadmin && <button
               type="button"
               onClick={() => navigate('/admin/faq/tambah')}
               className="flex-1 rounded-lg bg-slate-100 px-3 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-200 sm:flex-none"
             >
               + FAQ
-            </button>
+            </button>}
           </div>
         </section>
 

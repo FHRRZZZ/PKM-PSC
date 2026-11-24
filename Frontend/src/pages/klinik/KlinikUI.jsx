@@ -1,14 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import MessageError from '../../components/MessageError';
 import { Image, Upload } from '../../components/Icons';
+import { getSelectedKlinikId, klinikApi } from '../../api/klinik';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export const HARI = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
-export const fotoSrc = (path) =>
-  !path ? '' : /^https?:\/\//.test(path) ? path : `${API_URL}${path}`;
+export const fotoSrc = (path) => {
+  if (!path) return '';
+  if (/^(https?:|data:|blob:)/.test(path)) return path;
+  // Asset demo dan gambar yang dikelola frontend tetap dilayani Vite, bukan API.
+  if (String(path).startsWith('/image/')) return path;
+  return `${API_URL}${String(path).startsWith('/') ? path : `/${path}`}`;
+};
 
 // TIME dari backend "HH:MM:SS" -> "HH:MM"
 export const time5 = (t) => (t ? String(t).slice(0, 5) : '');
@@ -29,13 +36,36 @@ export function useFlash() {
 }
 
 export function PageHeader({ title, desc, crumb }) {
+  const [clinicName, setClinicName] = useState('Klinik terpilih');
+  useEffect(() => {
+    klinikApi.list().then((items) => {
+      const selected = items.find((item) => String(item.id) === String(getSelectedKlinikId()));
+      if (selected?.nama) setClinicName(selected.nama);
+    }).catch(() => {});
+  }, []);
   return (
-    <div className="mb-6">
-      <p className="text-xs text-slate-500">
-        Admin &gt; Klinik &gt; <b className="text-slate-800">{crumb || title}</b>
-      </p>
-      <h1 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">{title}</h1>
-      {desc && <p className="mt-1 text-sm text-slate-500">{desc}</p>}
+    <div className="relative mb-7 overflow-hidden rounded-2xl bg-[#182433] px-5 py-6 text-white shadow-[0_18px_40px_-24px_rgba(15,23,42,.8)] sm:px-7 sm:py-7">
+      <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-red-600/20 blur-2xl" />
+      <div className="relative">
+        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-red-300">CMS Klinik</p>
+        <p className="mt-2 text-xs text-slate-300">
+          Admin &gt; Klinik &gt; <b className="text-white">{crumb || title}</b>
+        </p>
+        <div className="mt-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
+            {desc && <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{desc}</p>}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to="/admin/klinik" className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-white/20">
+              ← Daftar Klinik
+            </Link>
+            <span className="w-fit rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-slate-200">
+              {clinicName}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -58,13 +88,13 @@ export function Notice({ message, error, onCloseError }) {
 }
 
 export const LoadingBox = ({ text = 'Memuat data...' }) => (
-  <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
+  <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
     {text}
   </div>
 );
 
 export const EmptyBox = ({ title, hint }) => (
-  <div className="rounded-xl border border-slate-200 bg-white p-8 text-center sm:p-10">
+  <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm sm:p-14">
     <p className="text-sm font-medium text-slate-700">{title}</p>
     {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
   </div>
@@ -72,7 +102,7 @@ export const EmptyBox = ({ title, hint }) => (
 
 export function Tabs({ tabs, value, onChange }) {
   return (
-    <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+    <div className="mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
       {tabs.map((t) => (
         <button
           key={t.value}
@@ -80,7 +110,7 @@ export function Tabs({ tabs, value, onChange }) {
           onClick={() => onChange(t.value)}
           className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
             value === t.value
-              ? 'bg-red-700 text-white'
+              ? 'bg-[#182433] text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
@@ -92,7 +122,7 @@ export function Tabs({ tabs, value, onChange }) {
 }
 
 export const Toolbar = ({ children }) => (
-  <div className="mb-6 flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+  <div className="mb-6 flex min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
     {children}
   </div>
 );
@@ -210,10 +240,10 @@ export const Thumb = ({ src, alt, className = 'h-16 w-16' }) =>
 // Modal form: error backend ditampilkan di dalam modal
 export function FormModal({ title, onClose, onSubmit, saving, error, onCloseError, children }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/40 p-3 sm:p-5">
+    <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-slate-950/55 p-3 backdrop-blur-[2px] sm:p-5">
       <form
         onSubmit={onSubmit}
-        className="my-auto flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-xl"
+        className="my-auto flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-slate-100 p-4 sm:p-5">
           <h2 className="text-base font-bold text-slate-900 sm:text-lg">{title}</h2>

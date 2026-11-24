@@ -148,9 +148,20 @@ export default function BeritaPublikPage() {
 
   return (
     <ProfileLayout title="Berita" crumbs={[{ label: 'Berita' }]}>
-      <p className="mb-6 max-w-2xl text-slate-600">
-        Kabar terbaru, edukasi, dan informasi kegiatan layanan kami.
-      </p>
+      <section className="mb-8 overflow-hidden rounded-2xl bg-[#243042] text-white shadow-sm">
+        <div className="grid gap-6 px-6 py-7 sm:px-8 lg:grid-cols-[1.4fr_1fr] lg:items-end">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-300">Pusat informasi PSC 119</p>
+            <h2 className="mt-2 max-w-xl text-2xl font-bold leading-tight sm:text-3xl">Kabar layanan dan edukasi untuk warga Depok</h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300">Ikuti informasi resmi, panduan pertolongan pertama, dan kegiatan pelayanan kegawatdaruratan dari tim kami.</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 border-t border-white/15 pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+            <div><p className="text-2xl font-bold text-white">{data.length}</p><p className="mt-1 text-[11px] text-slate-300">Artikel terbit</p></div>
+            <div><p className="text-2xl font-bold text-white">{daftarKategori.length}</p><p className="mt-1 text-[11px] text-slate-300">Kategori</p></div>
+            <div><p className="text-2xl font-bold text-red-300">119</p><p className="mt-1 text-[11px] text-slate-300">Nomor darurat</p></div>
+          </div>
+        </div>
+      </section>
 
       {loading && <Skeleton />}
 

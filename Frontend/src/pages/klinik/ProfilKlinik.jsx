@@ -15,8 +15,7 @@ import {
 
 const FIELDS = [
   'nama', 'deskripsi', 'melayani', 'alamat', 'telepon', 'whatsapp', 'email',
-  'maps_embed', 'akreditasi', 'akreditasi_tahun',
-  'izin_operasional_nomor', 'izin_operasional_penerbit', 'izin_operasional_file',
+  'maps_embed',
 ];
 
 const toForm = (p = {}) => ({
@@ -82,7 +81,7 @@ export default function ProfilKlinik() {
       <div className="min-h-screen min-w-0 bg-slate-50">
         <PageHeader
           title="Profil Klinik"
-          desc="Kelola identitas, kontak, akreditasi, dan informasi izin klinik."
+          desc="Kelola identitas, kontak, dan informasi umum klinik."
         />
         <Notice message={msg} error={error} onCloseError={() => setError('')} />
 
@@ -122,32 +121,6 @@ export default function ProfilKlinik() {
                   />
                 </Card>
 
-                <Card title="Akreditasi & Izin Operasional">
-                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    {text('akreditasi', 'Akreditasi', { placeholder: 'Mis. Paripurna' })}
-                    {text('akreditasi_tahun', 'Tahun Akreditasi', { maxLength: 10 })}
-                  </div>
-                  {text('izin_operasional_nomor', 'Nomor Izin Operasional')}
-                  {text('izin_operasional_penerbit', 'Penerbit Izin')}
-                  <Field label="File Izin Operasional" hint="(URL/path file)">
-                    <input
-                      value={form.izin_operasional_file}
-                      onChange={change('izin_operasional_file')}
-                      placeholder="/uploads/izin.pdf"
-                      className={inputCls}
-                    />
-                  </Field>
-                  {form.izin_operasional_file && (
-                    <a
-                      href={fotoSrc(form.izin_operasional_file)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-block text-xs font-semibold text-blue-700 hover:text-blue-900"
-                    >
-                      Buka file izin
-                    </a>
-                  )}
-                </Card>
               </div>
             </div>
 

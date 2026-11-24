@@ -13,6 +13,15 @@ const KlinikProfile = sequelize.define('KlinikProfile', {
         type: DataTypes.STRING(150),
         allowNull: false
     },
+    slug: {
+        type: DataTypes.STRING(180),
+        allowNull: true
+    },
+    is_active: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true
+    },
     deskripsi: {
         type: DataTypes.TEXT,
         allowNull: true
@@ -75,6 +84,7 @@ const KlinikProfile = sequelize.define('KlinikProfile', {
 
 // ==================== JAM OPERASIONAL ====================
 const JamOperasional = sequelize.define('JamOperasional', {
+    klinik_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     id: {
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
@@ -109,6 +119,7 @@ const JamOperasional = sequelize.define('JamOperasional', {
 
 // ==================== DOKTER ====================
 const Dokter = sequelize.define('Dokter', {
+    klinik_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     id: {
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
@@ -143,6 +154,7 @@ const Dokter = sequelize.define('Dokter', {
 
 // ==================== JADWAL PRAKTIK ====================
 const JadwalPraktik = sequelize.define('JadwalPraktik', {
+    klinik_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     id: {
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
@@ -186,6 +198,7 @@ JadwalPraktik.belongsTo(Dokter, { foreignKey: 'dokter_id', as: 'dokter' });
 
 // ==================== STRUKTUR ORGANISASI ====================
 const StrukturOrganisasi = sequelize.define('StrukturOrganisasi', {
+    klinik_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     id: {
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
@@ -226,6 +239,7 @@ const StrukturOrganisasi = sequelize.define('StrukturOrganisasi', {
 
 // ==================== ALUR BEROBAT ====================
 const AlurBerobat = sequelize.define('AlurBerobat', {
+    klinik_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     id: {
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
@@ -257,6 +271,7 @@ const AlurBerobat = sequelize.define('AlurBerobat', {
 
 // ==================== PENJAMINAN ====================
 const Penjaminan = sequelize.define('Penjaminan', {
+    klinik_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     id: {
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
@@ -289,6 +304,7 @@ const Penjaminan = sequelize.define('Penjaminan', {
 
 // ==================== GALERI FASILITAS ====================
 const GaleriFasilitas = sequelize.define('GaleriFasilitas', {
+    klinik_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     id: {
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
@@ -321,6 +337,11 @@ const GaleriFasilitas = sequelize.define('GaleriFasilitas', {
     tableName: 'galeri_fasilitas',
     timestamps: false
 });
+
+for (const model of [JamOperasional, Dokter, JadwalPraktik, StrukturOrganisasi, AlurBerobat, Penjaminan, GaleriFasilitas]) {
+    KlinikProfile.hasMany(model, { foreignKey: 'klinik_id', as: `${model.name}Klinik` });
+    model.belongsTo(KlinikProfile, { foreignKey: 'klinik_id', as: 'klinik' });
+}
 
 module.exports = {
     KlinikProfile,

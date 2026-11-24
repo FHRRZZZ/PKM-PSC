@@ -22,6 +22,31 @@ const Layanan = sequelize.define('Layanan', {
         type: DataTypes.TEXT,
         allowNull: false
     },
+    jenis: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        defaultValue: 'ambulans'
+    },
+    akreditasi: {
+        type: DataTypes.STRING(150),
+        allowNull: true
+    },
+    akreditasi_tahun: {
+        type: DataTypes.STRING(10),
+        allowNull: true
+    },
+    izin_operasional_nomor: {
+        type: DataTypes.STRING(150),
+        allowNull: true
+    },
+    izin_operasional_penerbit: {
+        type: DataTypes.STRING(150),
+        allowNull: true
+    },
+    izin_operasional_file: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
     foto: {
         type: DataTypes.STRING(255),
         allowNull: true
