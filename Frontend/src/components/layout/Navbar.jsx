@@ -42,12 +42,12 @@ export default function Navbar() {
             </Link>
             <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 sm:gap-x-7">
                 {[
-                ["Beranda", "#beranda"],
-                ["Layanan", "#layanan"],
-                ["Klinik", "#klinik"],
-                ["Panduan", "#panduan"],
-                ["Tentang", "#tentang"],
-                ["Berita", "#berita"],
+                ["Beranda", "/"],
+                ["Layanan", "/layanan"],
+                ["Panduan", "/panduan"],
+                ["Tentang", "/tentang"],
+                ["Berita", "/berita"],
+                ["Klinik", "/klinik"],
                 ].map(([label, href]) => (
                 <a
                     key={label}

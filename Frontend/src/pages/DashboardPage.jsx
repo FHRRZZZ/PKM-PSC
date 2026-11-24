@@ -224,13 +224,7 @@ export default function DashboardPage() {
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <EmergencyButton>Telepon 119</EmergencyButton>
-              <a
-                href="#kontak"
-                className="inline-flex items-center justify-center rounded-lg border border-white/60 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/20"
-              >
-                Pesan Ambulans
-              </a>
+              <EmergencyButton>Hotline</EmergencyButton>
             </div>
 
             <form

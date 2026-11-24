@@ -23,6 +23,7 @@ import BeritaPublikPage from './pages/berita/BeritaPublikPage';
 import BeritaDetailPublikPage from './pages/berita/BeritaDetailPublikPage';
 import KlinikDetail from './pages/klinik/KlinikDetail';
 import TentangDetail from './pages/tentang/TentangDetail';
+import PanduanDetail from "./components/public/PanduanDetail";
 
 function App() {
   return (
@@ -38,6 +39,8 @@ function App() {
         <Route path="/klinik/:slug" element={<KlinikDetail />} />
         <Route path="/tentang" element={<TentangDetail />} />
         <Route path="/tentang/:slug" element={<TentangDetail />} />
+        <Route path="/panduan" element={<PanduanDetail />} />
+        <Route path="/panduan/:slug" element={<PanduanDetail />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/berita" element={<BeritaPage />} />
