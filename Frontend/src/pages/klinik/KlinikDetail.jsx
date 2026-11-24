@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import ProfileLayout from '../../components/public/ProfileLayout';
-import { dokterApi, jadwalApi, jamApi } from '../../api/klinik';
+import {
+  alurApi,
+  dokterApi,
+  galeriApi,
+  getProfil,
+  jadwalApi,
+  jamApi,
+  penjaminanApi,
+  strukturApi,
+  getSelectedKlinikId,
+  setSelectedKlinikId,
+} from '../../api/klinik';
 import { fotoUrl } from '../berita/BeritaUtils';
 import {
   URUTAN_HARI,
@@ -16,23 +27,32 @@ import {
 } from './klinikUtils';
 
 const SECTIONS = [
+  { slug: 'profil-klinik', label: 'Profil Klinik' },
   { slug: 'jam-operasional', label: 'Jam Operasional' },
-  { slug: 'dokter', label: 'Dokter' },
-  { slug: 'jadwal-praktik', label: 'Jadwal Praktik' },
+  { slug: 'dokter-jadwal', label: 'Dokter & Jadwal' },
+  { slug: 'struktur-organisasi', label: 'Struktur Organisasi' },
+  { slug: 'informasi-pasien', label: 'Informasi Pasien' },
+  { slug: 'galeri-fasilitas', label: 'Galeri Fasilitas' },
 ];
 
-const MENU = SECTIONS.map((s) => ({ label: s.label, to: `/klinik/${s.slug}` }));
+const buildMenu = (klinikId) => SECTIONS.map((s) => ({
+  label: s.label,
+  to: `/klinik/${s.slug}?klinik_id=${encodeURIComponent(klinikId)}`,
+}));
 
 const AMBIL = {
+  'profil-klinik': async () => ({ profil: await getProfil() }),
   'jam-operasional': async () => ({ jam: toArray(await jamApi.list()) }),
-  dokter: async () => {
+  'dokter-jadwal': async () => {
     const [d, j] = await Promise.all([dokterApi.list(), jadwalApi.list()]);
     return { dokter: toArray(d), jadwal: toArray(j) };
   },
-  'jadwal-praktik': async () => {
-    const [d, j] = await Promise.all([dokterApi.list(), jadwalApi.list()]);
-    return { dokter: toArray(d), jadwal: toArray(j) };
+  'struktur-organisasi': async () => ({ struktur: toArray(await strukturApi.list()) }),
+  'informasi-pasien': async () => {
+    const [alur, penjaminan] = await Promise.all([alurApi.list(), penjaminanApi.list()]);
+    return { alur: toArray(alur), penjaminan: toArray(penjaminan) };
   },
+  'galeri-fasilitas': async () => ({ galeri: toArray(await galeriApi.list()) }),
 };
 
 function BadgeHariIni() {
@@ -295,8 +315,52 @@ function JadwalPraktik({ dokter, jadwal, now }) {
   );
 }
 
+function ProfilPublik({ profil }) {
+  if (!profil) return <p className="text-slate-500">Profil klinik belum tersedia.</p>;
+  return (
+    <div className="grid gap-5 md:grid-cols-[1.25fr_.75fr]">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-700">Tentang klinik</p>
+        <h3 className="mt-2 text-xl font-bold text-slate-900">{profil.nama}</h3>
+        <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">{profil.deskripsi || 'Informasi profil klinik belum dilengkapi.'}</p>
+        {profil.melayani && <div className="mt-5 border-t border-slate-100 pt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Melayani</p><p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{profil.melayani}</p></div>}
+      </section>
+      <section className="rounded-2xl bg-[#182433] p-5 text-white shadow-sm sm:p-7">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-300">Informasi kontak</p>
+        <dl className="mt-5 space-y-4 text-sm">
+          <div><dt className="text-slate-400">Alamat</dt><dd className="mt-1 leading-6">{profil.alamat || 'Belum tersedia'}</dd></div>
+          <div><dt className="text-slate-400">Telepon</dt><dd className="mt-1"><a className="font-semibold text-red-200 hover:text-white" href={`tel:${profil.telepon || '119'}`}>{profil.telepon || '119'}</a></dd></div>
+          {profil.email && <div><dt className="text-slate-400">Email</dt><dd className="mt-1 break-words">{profil.email}</dd></div>}
+          {profil.akreditasi && <div><dt className="text-slate-400">Akreditasi</dt><dd className="mt-1 font-semibold">{profil.akreditasi}{profil.akreditasi_tahun ? ` · ${profil.akreditasi_tahun}` : ''}</dd></div>}
+        </dl>
+      </section>
+    </div>
+  );
+}
+
+function StrukturPublik({ rows }) {
+  const aktifRows = rows.filter((item) => aktif(item.is_active));
+  if (!aktifRows.length) return <p className="text-slate-500">Struktur organisasi belum tersedia.</p>;
+  return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{aktifRows.map((item) => <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-red-700">{item.jabatan}</p><h3 className="mt-2 text-lg font-bold text-slate-900">{item.nama}</h3></article>)}</div>;
+}
+
+function InformasiPasienPublik({ alur, penjaminan }) {
+  const langkah = alur.filter((item) => aktif(item.is_active)).sort((a, b) => a.urutan - b.urutan);
+  const jaminan = penjaminan.filter((item) => aktif(item.is_active)).sort((a, b) => a.urutan - b.urutan);
+  return <div className="grid gap-6 lg:grid-cols-2"><section><h3 className="mb-3 text-lg font-bold text-slate-900">Alur Berobat</h3><div className="space-y-3">{langkah.map((item, index) => <article key={item.id} className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-red-50 text-sm font-bold text-red-700">{index + 1}</span><div><h4 className="font-bold text-slate-900">{item.judul}</h4><p className="mt-1 text-sm leading-6 text-slate-600">{item.deskripsi}</p></div></article>)}</div></section><section><h3 className="mb-3 text-lg font-bold text-slate-900">Penjaminan</h3><div className="space-y-3">{jaminan.map((item) => <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><h4 className="font-bold text-slate-900">{item.nama}</h4><p className="mt-1 text-sm leading-6 text-slate-600">{item.deskripsi || 'Informasi penjaminan tersedia di klinik.'}</p></article>)}</div></section></div>;
+}
+
+function GaleriPublik({ items }) {
+  const list = items.filter((item) => aktif(item.is_active));
+  if (!list.length) return <p className="text-slate-500">Galeri fasilitas belum tersedia.</p>;
+  return <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{list.map((item) => <article key={item.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><img src={fotoUrl(item.foto) || '/image/intro.webp'} alt={item.judul} className="aspect-[4/3] w-full object-cover" /><div className="p-4"><h3 className="font-bold text-slate-900">{item.judul}</h3>{item.deskripsi && <p className="mt-1 text-sm leading-6 text-slate-600">{item.deskripsi}</p>}</div></article>)}</div>;
+}
+
 export default function KlinikDetail() {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
+  const klinikId = searchParams.get('klinik_id') || getSelectedKlinikId();
+  const menu = useMemo(() => buildMenu(klinikId), [klinikId]);
   const now = useNow();
   const index = SECTIONS.findIndex((s) => s.slug === slug);
   const section = index >= 0 ? SECTIONS[index] : null;
@@ -304,6 +368,15 @@ export default function KlinikDetail() {
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [profil, setProfil] = useState(null);
+
+  useEffect(() => {
+    if (searchParams.get('klinik_id')) setSelectedKlinikId(searchParams.get('klinik_id'));
+  }, [searchParams]);
+
+  useEffect(() => {
+    getProfil().then(setProfil).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!section) return undefined;
@@ -320,16 +393,17 @@ export default function KlinikDetail() {
     };
   }, [section]);
 
-  if (!slug) return <Navigate to={`/klinik/${SECTIONS[0].slug}`} replace />;
+  if (!slug) return <Navigate to={menu[0].to} replace />;
 
-  const prev = index > 0 ? MENU[index - 1] : null;
-  const next = index >= 0 && index < MENU.length - 1 ? MENU[index + 1] : null;
+  const prev = index > 0 ? menu[index - 1] : null;
+  const next = index >= 0 && index < menu.length - 1 ? menu[index + 1] : null;
 
   return (
     <ProfileLayout
       title={section?.label || 'Klinik'}
-      crumbs={[{ label: 'Klinik', to: `/klinik/${SECTIONS[0].slug}` }, ...(section ? [{ label: section.label }] : [])]}
-      menu={MENU}
+      crumbs={[{ label: 'Klinik', to: menu[0].to }, ...(section ? [{ label: section.label }] : [])]}
+      menu={menu}
+      menuHorizontal
       prev={prev}
       next={next}
     >
@@ -337,7 +411,7 @@ export default function KlinikDetail() {
         <div className="rounded-xl border border-slate-200 p-8 text-center">
           <p className="font-medium text-slate-700">Halaman tidak ditemukan.</p>
           <Link
-            to={`/klinik/${SECTIONS[0].slug}`}
+            to={menu[0].to}
             className="mt-3 inline-block text-sm font-semibold text-red-700 hover:text-red-900"
           >
             Lihat informasi klinik
@@ -357,12 +431,34 @@ export default function KlinikDetail() {
         </div>
       ) : (
         <article>
+          <section className="mb-8 overflow-hidden rounded-2xl border border-slate-200 bg-[#243042] text-white shadow-sm">
+            <div className="grid gap-5 p-5 sm:p-7 md:grid-cols-[1.4fr_1fr] md:items-end">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-300">Klinik PSC 119</p>
+                <h2 className="mt-2 text-2xl font-bold leading-tight">{profil?.nama || 'Informasi Klinik PSC 119'}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{profil?.deskripsi || 'Informasi jadwal, tenaga medis, dan layanan Klinik PSC 119 Kota Depok.'}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 border-t border-white/15 pt-4 md:border-l md:border-t-0 md:pl-5 md:pt-0">
+                <div><p className="text-xs text-slate-400">Alamat</p><p className="mt-1 text-sm font-semibold text-white">{profil?.alamat || 'Kota Depok'}</p></div>
+                <div><p className="text-xs text-slate-400">Kontak</p><a href={`tel:${String(profil?.telepon || '119').replace(/\D/g, '')}`} className="mt-1 block text-sm font-semibold text-red-200 hover:text-white">{profil?.telepon || '119'}</a></div>
+              </div>
+            </div>
+          </section>
           <h2 className="mb-6 break-words text-2xl font-bold text-slate-900 sm:text-3xl">{section.label}</h2>
+          {section.slug === 'profil-klinik' && <ProfilPublik profil={data.profil || profil} />}
           {section.slug === 'jam-operasional' && <JamOperasional rows={data.jam || []} now={now} />}
-          {section.slug === 'dokter' && <DaftarDokter dokter={data.dokter || []} jadwal={data.jadwal || []} />}
-          {section.slug === 'jadwal-praktik' && (
-            <JadwalPraktik dokter={data.dokter || []} jadwal={data.jadwal || []} now={now} />
+          {section.slug === 'dokter-jadwal' && (
+            <div className="space-y-10">
+              <DaftarDokter dokter={data.dokter || []} jadwal={data.jadwal || []} />
+              <section>
+                <h3 className="mb-5 text-xl font-bold text-slate-900">Jadwal Praktik</h3>
+                <JadwalPraktik dokter={data.dokter || []} jadwal={data.jadwal || []} now={now} />
+              </section>
+            </div>
           )}
+          {section.slug === 'struktur-organisasi' && <StrukturPublik rows={data.struktur || []} />}
+          {section.slug === 'informasi-pasien' && <InformasiPasienPublik alur={data.alur || []} penjaminan={data.penjaminan || []} />}
+          {section.slug === 'galeri-fasilitas' && <GaleriPublik items={data.galeri || []} />}
         </article>
       )}
     </ProfileLayout>

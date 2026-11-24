@@ -5,23 +5,14 @@ import Icon from '../ui/Icon';
 
 const menus = [
   { name: 'Dashboard', icon: 'home', href: '/admin' },
-  {
-    name: 'Klinik',
-    icon: 'hospital', // ganti dengan ikon klinik jika tersedia di ui/Icon
-    href: '/admin/klinik',
-    children: [
-      { name: 'Profil Klinik', href: '/admin/klinik/profil' },
-      { name: 'Jam Operasional', href: '/admin/klinik/jam-operasional' },
-      { name: 'Dokter & Jadwal', href: '/admin/klinik/dokter' },
-      { name: 'Struktur Organisasi', href: '/admin/klinik/struktur-organisasi' },
-      { name: 'Informasi Pasien', href: '/admin/klinik/informasi-pasien' },
-      { name: 'Galeri Fasilitas', href: '/admin/klinik/galeri' },
-    ],
-  },
   { name: 'Layanan', icon: 'cross', href: '/admin/layanan' },
   { name: 'Berita', icon: 'newspaper', href: '/admin/berita' },
+  { name: 'Katalog Layanan Klinik', icon: 'hospital', href: '/admin/klinik' },
   { name: 'FAQ', icon: 'circle-help', href: '/admin/faq' },
   { name: 'Kontak', icon: 'phone', href: '/admin/kontak' },
+  { name: 'Hero Landing', icon: 'image', href: '/admin/hero' },
+  { name: 'Galeri PSC', icon: 'image', href: '/admin/galeri-psc' },
+  { name: 'Log Aktivitas', icon: 'clock', href: '/admin/log-aktivitas', superadminOnly: true },
 ];
 
 const linkCls = ({ isActive }) =>
@@ -34,13 +25,20 @@ const linkCls = ({ isActive }) =>
 export default function Sidebar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, isSuperadmin } = useAuth();
+
+  const visibleMenus = menus.filter((menu) => !menu.superadminOnly || isSuperadmin);
 
   const [isOpen, setIsOpen] = useState(false);
   // grup menu terbuka otomatis jika halaman aktif berada di dalamnya
   const [openGroups, setOpenGroups] = useState(() =>
     Object.fromEntries(
-      menus.filter((m) => m.children).map((m) => [m.name, pathname.startsWith(m.href)])
+      menus.filter((m) => m.children).map((m) => [
+        m.name,
+        m.children.some((child) =>
+          child.end ? pathname === child.href : pathname.startsWith(child.href)
+        ),
+      ])
     )
   );
 
@@ -78,28 +76,31 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-64 flex-col justify-between overflow-y-auto border-r border-gray-100 bg-white p-6 transition-transform duration-200 ease-out lg:sticky lg:z-0 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-72 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white p-5 transition-transform duration-200 ease-out lg:fixed lg:z-40 lg:h-screen lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div>
+        <div className="flex min-h-0 flex-1 flex-col">
           {/* Logo */}
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-700 text-xs font-bold text-white shadow-md">
+          <div className="mb-8 flex items-center gap-3 rounded-2xl bg-[#182433] p-3 text-white shadow-lg shadow-slate-900/10">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-600 text-xs font-bold text-white shadow-md">
               119
             </div>
 
-            <h1 className="text-lg font-bold leading-tight text-gray-900">
-              PSC Dinkes Depok
+            <h1 className="text-lg font-bold leading-tight text-white">
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-red-200">CMS Klinik</span>
+              <span className="block text-sm">PSC Dinkes Depok</span>
             </h1>
           </div>
 
           {/* Menu */}
-          <nav className="space-y-2">
-            {menus.map((menu) => {
+          <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto pb-4">
+            {visibleMenus.map((menu) => {
               if (menu.children) {
                 const open = openGroups[menu.name];
-                const groupActive = pathname.startsWith(menu.href);
+                const groupActive = menu.children.some((child) =>
+                  child.end ? pathname === child.href : pathname.startsWith(child.href)
+                );
                 return (
                   <div key={menu.name}>
                     <button
@@ -137,6 +138,7 @@ export default function Sidebar() {
                             key={child.href}
                             to={child.href}
                             onClick={() => setIsOpen(false)}
+                            end={child.end}
                             className={({ isActive }) =>
                               `block rounded-lg px-3 py-2 text-sm transition-colors duration-150 ${
                                 isActive
@@ -158,7 +160,7 @@ export default function Sidebar() {
                 <NavLink
                   key={menu.name}
                   to={menu.href}
-                  end={menu.href === '/admin'}
+                  end={menu.href === '/admin' || menu.href === '/admin/klinik'}
                   onClick={() => setIsOpen(false)}
                   className={linkCls}
                 >

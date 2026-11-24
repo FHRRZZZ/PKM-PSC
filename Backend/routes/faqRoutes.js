@@ -1,15 +1,16 @@
 const express = require('express');
 const faqController = require('../controllers/faqController');
-const { protects } = require('../middleware/protect');
+const { protects, requireRole } = require('../middleware/protect');
 
 const router = express.Router();
+const requireSuperadmin = requireRole('admin', 'superadmin');
 
-router.get('/admin', protects, faqController.getFaqs);
-router.get('/admin/:id', protects, faqController.getFaqById);
+router.get('/admin', protects, requireSuperadmin, faqController.getFaqs);
+router.get('/admin/:id', protects, requireSuperadmin, faqController.getFaqById);
 router.get('/', faqController.getFaqs);
 router.get('/:id', faqController.getFaqById);
-router.post('/', protects, faqController.createFaq);
-router.put('/:id', protects, faqController.updateFaq);
-router.delete('/:id', protects, faqController.deleteFaq);
+router.post('/', protects, requireSuperadmin, faqController.createFaq);
+router.put('/:id', protects, requireSuperadmin, faqController.updateFaq);
+router.delete('/:id', protects, requireSuperadmin, faqController.deleteFaq);
 
 module.exports = router;

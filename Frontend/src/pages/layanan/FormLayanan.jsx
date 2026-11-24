@@ -33,6 +33,7 @@ export default function FormLayanan() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const id = params.get("id");
+  const jenis = params.get("jenis") === "klinik" ? "klinik" : "ambulans";
 
   useEffect(() => {
     if (!id) return;
@@ -42,7 +43,7 @@ export default function FormLayanan() {
     const loadData = async () => {
       try {
         setLoading(true);
-        const item = await getLayananAdminById(id);
+        const item = await getLayananAdminById(id, jenis);
 
         if (!active) return;
 
@@ -85,6 +86,7 @@ export default function FormLayanan() {
       : {
           nama: form.nama,
           deskripsi: form.deskripsi,
+          jenis,
           tarif,
           tarif_is_active: form.tarif_is_active,
           is_active: form.is_active,
@@ -94,6 +96,7 @@ export default function FormLayanan() {
     if (form.foto) {
       body.append("nama", form.nama);
       body.append("deskripsi", form.deskripsi);
+      body.append("jenis", jenis);
       if (form.tarif !== "") body.append("tarif", String(form.tarif));
       body.append("tarif_is_active", String(form.tarif_is_active));
       body.append("is_active", String(form.is_active));
@@ -104,7 +107,7 @@ export default function FormLayanan() {
       if (id) await updateLayanan(id, body);
       else await createLayanan(body);
 
-      navigate("/admin/layanan");
+      navigate(jenis === "klinik" ? "/admin/klinik" : "/admin/layanan");
     } catch (err) {
       setError(err.message || "Gagal menyimpan layanan.");
     } finally {
@@ -118,15 +121,15 @@ export default function FormLayanan() {
         {/* Header */}
         <div className="mb-6">
           <p className="text-xs text-slate-500">
-            Admin &gt; Layanan &gt; <b className="text-slate-800">{id ? "Edit" : "Tambah"}</b>
+            Admin &gt; {jenis === "klinik" ? "Katalog Layanan Klinik" : "Layanan Ambulans"} &gt; <b className="text-slate-800">{id ? "Edit" : "Tambah"}</b>
           </p>
 
           <h1 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
-            {id ? "Edit Layanan" : "Tambah Layanan"}
+            {id ? "Edit Layanan Klinik" : jenis === "klinik" ? "Tambah Layanan Klinik" : "Tambah Layanan Ambulans"}
           </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Lengkapi informasi layanan ambulans di bawah ini.
+            <p className="mt-1 text-sm text-slate-500">
+            Lengkapi informasi {jenis === "klinik" ? "layanan klinik" : "layanan ambulans"} di bawah ini.
           </p>
         </div>
 
@@ -160,7 +163,7 @@ export default function FormLayanan() {
                     }
                     required
                     className="mt-2 w-full min-w-0 rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-500/10 sm:px-4"
-                    placeholder="Contoh: Ambulans Darurat"
+                    placeholder={jenis === "klinik" ? "Contoh: Layanan Gigi" : "Contoh: Ambulans Darurat"}
                   />
                 </label>
 
@@ -264,6 +267,7 @@ export default function FormLayanan() {
                     size="large"
                   />
                 </div>
+
               </div>
             </div>
 

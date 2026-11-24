@@ -129,12 +129,15 @@ export default function GaleriFasilitas() {
         <Notice message={msg} error={error} onCloseError={() => setError('')} />
 
         <Toolbar>
-          <SearchInput
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari judul foto..."
-            className="w-full sm:max-w-md"
-          />
+          <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+            <p className="shrink-0 text-sm font-bold text-slate-800">Koleksi fasilitas</p>
+            <SearchInput
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari judul foto..."
+              className="w-full sm:max-w-md"
+            />
+          </div>
           <Button
             type="button"
             onClick={() => openForm()}
@@ -157,17 +160,17 @@ export default function GaleriFasilitas() {
             {filtered.map((item) => (
               <article
                 key={item.id}
-                className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-xl"
               >
                 {item.foto ? (
                   <img
                     src={fotoSrc(item.foto)}
                     alt={item.judul}
                     loading="lazy"
-                    className="aspect-video w-full bg-slate-100 object-cover"
+                    className="aspect-[4/3] w-full bg-slate-100 object-cover transition duration-300 group-hover:scale-[1.02]"
                   />
                 ) : (
-                  <div className="flex aspect-video items-center justify-center bg-slate-100 text-slate-400">
+                  <div className="flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
                     <Image className="h-9 w-9" />
                   </div>
                 )}
@@ -183,7 +186,7 @@ export default function GaleriFasilitas() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-end gap-4 border-t border-slate-100 p-4 text-xs">
+                <div className="flex items-center justify-end gap-4 border-t border-slate-100 bg-slate-50/70 p-4 text-xs">
                   <button
                     type="button"
                     onClick={() => openForm(item)}

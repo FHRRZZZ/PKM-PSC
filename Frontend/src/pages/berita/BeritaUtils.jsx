@@ -5,6 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export function fotoUrl(foto) {
   if (!foto) return null;
   if (/^https?:\/\//i.test(foto)) return foto;
+  if (String(foto).startsWith('/image/')) return foto;
   return `${API_URL}${foto.startsWith('/') ? '' : '/'}${foto}`;
 }
 

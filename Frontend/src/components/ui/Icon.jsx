@@ -14,6 +14,9 @@ import {
     Phone,
     Hospital,
     Cross,
+    Users,
+    Image,
+    Clock,
 } from 'lucide-react';
 
 const icons = {
@@ -32,6 +35,9 @@ const icons = {
     phone: Phone,
     hospital: Hospital,
     cross: Cross,
+    users: Users,
+    image: Image,
+    clock: Clock,
 };
 export default function Icon({
     name,

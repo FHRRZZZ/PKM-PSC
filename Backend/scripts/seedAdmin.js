@@ -4,9 +4,12 @@ const Admin = require('../models/Admin');
 const { sequelize } = require('../config/db');
 
 async function seedAdmin() {
-    const { ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
+    const { ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_ROLE = 'superadmin' } = process.env;
     if (!ADMIN_USERNAME || !ADMIN_EMAIL || !ADMIN_PASSWORD || ADMIN_PASSWORD.length < 12) {
         throw new Error('Set ADMIN_USERNAME, ADMIN_EMAIL, and an ADMIN_PASSWORD of at least 12 characters');
+    }
+    if (!['admin', 'superadmin'].includes(ADMIN_ROLE)) {
+        throw new Error('ADMIN_ROLE must be admin or superadmin');
     }
 
     await sequelize.authenticate();
@@ -22,7 +25,7 @@ async function seedAdmin() {
         username: ADMIN_USERNAME,
         email: ADMIN_EMAIL,
         password,
-        role: 'superadmin'
+        role: ADMIN_ROLE
     });
     console.log(`Created admin account ${ADMIN_EMAIL}.`);
 }

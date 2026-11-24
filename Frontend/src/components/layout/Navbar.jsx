@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [pinned, setPinned] = useState(true);
+  const { pathname } = useLocation();
   const floating = scrolled && pinned;
 
   // kode effect, floating, dan JSX navbar
@@ -43,20 +44,28 @@ export default function Navbar() {
             <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 sm:gap-x-7">
                 {[
                 ["Beranda", "/"],
-                ["Layanan", "/layanan"],
-                ["Panduan", "/panduan"],
+                ["Layanan", pathname === "/" ? "#layanan" : "/#layanan"],
+                ["Panduan", pathname === "/" ? "#panduan" : "/#panduan"],
                 ["Tentang", "/tentang"],
                 ["Berita", "/berita"],
-                ["Klinik", "/klinik"],
-                ].map(([label, href]) => (
-                <a
-                    key={label}
-                    href={href}
-                    className="text-xs font-semibold text-gray-700 transition hover:text-red-700 sm:text-sm"
-                >
+                ].map(([label, href]) => {
+                const isSectionLink = label === "Layanan" || label === "Panduan";
+                const className = "text-xs font-semibold text-gray-700 transition hover:text-red-700 sm:text-sm";
+                return isSectionLink ? (
+                <a key={label} href={href} className={className}>
                     {label}
                 </a>
-                ))}
+                ) : (
+                <Link
+                    key={label}
+                    to={href}
+                    onClick={href === "/" ? () => window.scrollTo({ top: 0, behavior: "smooth" }) : undefined}
+                    className={className}
+                >
+                    {label}
+                </Link>
+                );
+                })}
             </div>
 
             {/* Tombol X: div "pp" diganti jadi fungsi */}

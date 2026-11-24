@@ -9,7 +9,7 @@ const {
     Penjaminan,
     GaleriFasilitas
 } = require("../models/klinikModels");
-const { handleError, parseId } = require("../utils/api");
+const { createSlug, getUniqueSlug, handleError, parseId } = require("../utils/api");
 
 const HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 
@@ -40,20 +40,103 @@ function isValidBool(value) {
   return typeof value === "boolean" || value === "true" || value === "false";
 }
 
+function clinicId(req) {
+  return parseId(String(req?.query?.klinik_id || req?.body?.klinik_id || "")) || 1;
+}
+
+function clinicWhere(req, extra = {}) {
+  return { klinik_id: clinicId(req), ...extra };
+}
+
 // ==================== PROFIL KLINIK ====================
 
-async function getOrCreateProfile() {
-  let profile = await KlinikProfile.findByPk(1);
+async function getOrCreateProfile(req) {
+  const requestedId = parseId(String(req?.query?.klinik_id || "")) || 1;
+  let profile = await KlinikProfile.findByPk(requestedId);
   if (!profile) {
-    profile = await KlinikProfile.create({ id: 1, nama: "Klinik" });
+    profile = await KlinikProfile.create({ id: requestedId, nama: "Klinik" });
   }
   return profile;
 }
 
 exports.getKlinikProfile = async (req, res) => {
   try {
-    const profile = await getOrCreateProfile();
+    const profile = await getOrCreateProfile(req);
     return res.status(200).json(profile);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+// Katalog klinik untuk CMS dan halaman pemilihan klinik publik.
+exports.getKlinikProfiles = async (req, res) => {
+  try {
+    const profiles = await KlinikProfile.findAll({
+      where: req.user ? {} : { is_active: true },
+      order: [["nama", "ASC"]],
+    });
+    return res.status(200).json(profiles);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+exports.createKlinikProfile = async (req, res) => {
+  try {
+    const body = req.body || {};
+    if (typeof body.nama !== "string" || !body.nama.trim()) {
+      return res.status(400).json({ message: "nama is required" });
+    }
+    const profile = await KlinikProfile.create({
+      nama: body.nama.trim(),
+      slug: await getUniqueSlug(KlinikProfile, body.slug || body.nama),
+      deskripsi: body.deskripsi || null,
+      alamat: body.alamat || null,
+      telepon: body.telepon || null,
+      whatsapp: body.whatsapp || null,
+      email: body.email || null,
+      maps_embed: body.maps_embed || null,
+      is_active: body.is_active !== false,
+    });
+    return res.status(201).json(profile);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+exports.updateKlinikProfileById = async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (!id) return res.status(400).json({ message: "id is invalid" });
+    const profile = await KlinikProfile.findByPk(id);
+    if (!profile) return res.status(404).json({ message: "Klinik not found" });
+    const body = req.body || {};
+    const updates = {};
+    if (body.nama !== undefined) {
+      if (typeof body.nama !== "string" || !body.nama.trim()) return res.status(400).json({ message: "nama cannot be empty" });
+      updates.nama = body.nama.trim();
+    }
+    if (body.slug !== undefined || body.nama !== undefined) updates.slug = await getUniqueSlug(KlinikProfile, body.slug || body.nama, id);
+    ["deskripsi", "alamat", "telepon", "whatsapp", "email", "maps_embed"].forEach((field) => {
+      if (body[field] !== undefined) updates[field] = body[field] || null;
+    });
+    if (body.is_active !== undefined) updates.is_active = body.is_active === true || body.is_active === "true";
+    if (req.file) updates.foto = `/uploads/${req.file.filename}`;
+    await profile.update(updates);
+    return res.status(200).json(profile);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+exports.deleteKlinikProfile = async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (!id) return res.status(400).json({ message: "id is invalid" });
+    if (id === 1) return res.status(409).json({ message: "Klinik utama tidak dapat dihapus" });
+    const deleted = await KlinikProfile.destroy({ where: { id } });
+    if (!deleted) return res.status(404).json({ message: "Klinik not found" });
+    return res.status(200).json({ message: "Klinik deleted successfully" });
   } catch (error) {
     return handleError(res, error);
   }
@@ -61,7 +144,7 @@ exports.getKlinikProfile = async (req, res) => {
 
 exports.updateKlinikProfile = async (req, res) => {
   try {
-    const profile = await getOrCreateProfile();
+    const profile = await getOrCreateProfile(req);
     const body = req.body || {};
     const updates = {};
 
@@ -112,7 +195,7 @@ exports.updateKlinikProfile = async (req, res) => {
 exports.getAllJamOperasional = async (req, res) => {
   try {
     const jam = await JamOperasional.findAll({
-      where: req.user ? {} : { is_tutup: false },
+      where: clinicWhere(req, req.user ? {} : { is_tutup: false }),
       order: [["id", "ASC"]],
     });
     return res.status(200).json(jam);
@@ -141,6 +224,8 @@ exports.createJamOperasional = async (req, res) => {
       jam_tutup: isTutup ? null : body.jam_tutup,
       is_tutup: isTutup,
       keterangan: body.keterangan || null,
+      klinik_id: clinicId(req),
+      klinik_id: clinicId(req),
     });
     return res.status(201).json(jam);
   } catch (error) {
@@ -227,7 +312,7 @@ exports.deleteJamOperasional = async (req, res) => {
 exports.getAllDokter = async (req, res) => {
   try {
     const dokter = await Dokter.findAll({
-      where: req.user ? {} : { is_active: true },
+      where: clinicWhere(req, req.user ? {} : { is_active: true }),
       include: [{ model: JadwalPraktik, as: "jadwal" }],
       order: [["nama", "ASC"]],
     });
@@ -268,6 +353,8 @@ exports.createDokter = async (req, res) => {
       no_str: body.no_str || null,
       foto: req.file ? `/uploads/${req.file.filename}` : body.foto || null,
       is_active: toBool(body.is_active, true),
+      klinik_id: clinicId(req),
+      klinik_id: clinicId(req),
     });
     return res.status(201).json(dokter);
   } catch (error) {
@@ -389,6 +476,7 @@ exports.createJadwal = async (req, res) => {
       jam_selesai: body.jam_selesai,
       ruang: body.ruang || null,
       is_active: toBool(body.is_active, true),
+      klinik_id: clinicId(req),
     });
     return res.status(201).json(jadwal);
   } catch (error) {
@@ -482,7 +570,7 @@ exports.deleteJadwal = async (req, res) => {
 exports.getAllStruktur = async (req, res) => {
   try {
     const struktur = await StrukturOrganisasi.findAll({
-      where: req.user ? {} : { is_active: true },
+      where: clinicWhere(req, req.user ? {} : { is_active: true }),
       order: [
         ["urutan", "ASC"],
         ["id", "ASC"],
@@ -525,6 +613,7 @@ exports.createStruktur = async (req, res) => {
       parent_id: body.parent_id ? Number(body.parent_id) : null,
       urutan: body.urutan === undefined ? 0 : Number(body.urutan),
       is_active: toBool(body.is_active, true),
+      klinik_id: clinicId(req),
     });
     return res.status(201).json(struktur);
   } catch (error) {
@@ -636,7 +725,7 @@ exports.deleteStruktur = async (req, res) => {
 exports.getAllAlur = async (req, res) => {
   try {
     const alur = await AlurBerobat.findAll({
-      where: req.user ? {} : { is_active: true },
+      where: clinicWhere(req, req.user ? {} : { is_active: true }),
       order: [
         ["urutan", "ASC"],
         ["id", "ASC"],
@@ -667,6 +756,7 @@ exports.createAlur = async (req, res) => {
       deskripsi: body.deskripsi.trim(),
       urutan: body.urutan === undefined ? 0 : Number(body.urutan),
       is_active: toBool(body.is_active, true),
+      klinik_id: clinicId(req),
     });
     return res.status(201).json(alur);
   } catch (error) {
@@ -741,7 +831,7 @@ exports.deleteAlur = async (req, res) => {
 exports.getAllPenjaminan = async (req, res) => {
   try {
     const penjaminan = await Penjaminan.findAll({
-      where: req.user ? {} : { is_active: true },
+      where: clinicWhere(req, req.user ? {} : { is_active: true }),
       order: [
         ["urutan", "ASC"],
         ["id", "ASC"],
@@ -778,6 +868,7 @@ exports.createPenjaminan = async (req, res) => {
       deskripsi: body.deskripsi || null,
       urutan: body.urutan === undefined ? 0 : Number(body.urutan),
       is_active: toBool(body.is_active, true),
+      klinik_id: clinicId(req),
     });
     return res.status(201).json(penjaminan);
   } catch (error) {
@@ -856,7 +947,7 @@ exports.deletePenjaminan = async (req, res) => {
 exports.getAllGaleri = async (req, res) => {
   try {
     const galeri = await GaleriFasilitas.findAll({
-      where: req.user ? {} : { is_active: true },
+      where: clinicWhere(req, req.user ? {} : { is_active: true }),
       order: [
         ["urutan", "ASC"],
         ["id", "ASC"],
@@ -899,6 +990,7 @@ exports.createGaleri = async (req, res) => {
       foto: req.file ? `/uploads/${req.file.filename}` : body.foto,
       urutan: body.urutan === undefined ? 0 : Number(body.urutan),
       is_active: toBool(body.is_active, true),
+      klinik_id: clinicId(req),
     });
     return res.status(201).json(galeri);
   } catch (error) {

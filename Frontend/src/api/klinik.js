@@ -3,6 +3,10 @@
 // TODO: samakan getToken() & penanganan 401 dengan pola di src/api/berita.js
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const BASE = `${API_URL}/api/klinik`;
+const CLINIC_KEY = 'selected_klinik_id';
+
+export const getSelectedKlinikId = () => localStorage.getItem(CLINIC_KEY) || '1';
+export const setSelectedKlinikId = (id) => localStorage.setItem(CLINIC_KEY, String(id));
 
 const getToken = () => localStorage.getItem('token');
 
@@ -14,7 +18,9 @@ async function request(path, { method = 'GET', body } = {}) {
   const isForm = body instanceof FormData;
   if (body && !isForm) headers['Content-Type'] = 'application/json';
 
-  const res = await fetch(`${BASE}${path}`, {
+  const separator = path.includes('?') ? '&' : '?';
+  const scopedPath = path === '/daftar' ? path : `${path}${separator}klinik_id=${encodeURIComponent(getSelectedKlinikId())}`;
+  const res = await fetch(`${BASE}${scopedPath}`, {
     method,
     headers,
     body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
@@ -58,6 +64,12 @@ const crud = (resource) => ({
 // Profil (data tunggal)
 export const getProfil = () => request('/profil');
 export const updateProfil = (body) => request('/profil', { method: 'PUT', body });
+export const klinikApi = {
+  list: () => request('/daftar'),
+  create: (body) => request('/daftar', { method: 'POST', body }),
+  update: (id, body) => request(`/daftar/${id}`, { method: 'PUT', body }),
+  remove: (id) => request(`/daftar/${id}`, { method: 'DELETE' }),
+};
 
 export const jamApi = crud('jam-operasional');
 export const dokterApi = crud('dokter');

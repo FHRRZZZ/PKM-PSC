@@ -23,7 +23,12 @@ import BeritaPublikPage from './pages/berita/BeritaPublikPage';
 import BeritaDetailPublikPage from './pages/berita/BeritaDetailPublikPage';
 import KlinikDetail from './pages/klinik/KlinikDetail';
 import TentangDetail from './pages/tentang/TentangDetail';
-import PanduanDetail from "./components/public/PanduanDetail";
+import HeroPage from './pages/hero/HeroPage';
+import ActivityLogPage from './pages/activity/ActivityLogPage';
+import KlinikManagePage from './pages/klinik/KlinikManagePage';
+import InformasiKlinik from './pages/klinik/InformasiKlinik';
+import KlinikCatalogPage from './pages/klinik/KlinikCatalogPage';
+import GaleriPSCPage from './pages/galeri/GaleriPSCPage';
 
 function App() {
   return (
@@ -35,7 +40,7 @@ function App() {
         <Route path="/layanan/:slug" element={<LayananDetail />} />
         <Route path="/berita" element={<BeritaPublikPage />} />
         <Route path="/berita/:slug" element={<BeritaDetailPublikPage />} />
-        <Route path="/klinik" element={<KlinikDetail />} />
+        <Route path="/klinik" element={<KlinikCatalogPage />} />
         <Route path="/klinik/:slug" element={<KlinikDetail />} />
         <Route path="/tentang" element={<TentangDetail />} />
         <Route path="/tentang/:slug" element={<TentangDetail />} />
@@ -45,17 +50,27 @@ function App() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/berita" element={<BeritaPage />} />
           <Route path="/admin/berita/tambah" element={<FormBerita />} />
-          <Route path="/admin/faq" element={<FaqPage />} />
-          <Route path="/admin/faq/tambah" element={<FormFaq />} />
-          <Route path="/admin/kontak" element={<KontakPage />} />
+          <Route path="/admin/galeri-psc" element={<GaleriPSCPage />} />
+          <Route element={<ProtectedRoute roles={['admin', 'superadmin']} />}>
+            <Route path="/admin/faq" element={<FaqPage />} />
+            <Route path="/admin/faq/tambah" element={<FormFaq />} />
+            <Route path="/admin/kontak" element={<KontakPage />} />
+            <Route path="/admin/hero" element={<HeroPage />} />
+            <Route path="/admin/klinik" element={<LayananPage clinicCatalog />} />
+            <Route path="/admin/klinik/kelola" element={<KlinikManagePage />} />
+            <Route path="/admin/klinik/informasi" element={<InformasiKlinik />} />
+            <Route path="/admin/klinik/profil" element={<ProfilKlinik />} />
+            <Route path="/admin/klinik/jam-operasional" element={<JamOperasional />} />
+            <Route path="/admin/klinik/dokter" element={<DokterJadwal />} />
+            <Route path="/admin/klinik/struktur-organisasi" element={<StrukturOrganisasi />} />
+            <Route path="/admin/klinik/informasi-pasien" element={<InformasiPasien />} />
+            <Route path="/admin/klinik/galeri" element={<GaleriFasilitas />} />
+            <Route element={<ProtectedRoute roles={['superadmin']} />}>
+              <Route path="/admin/log-aktivitas" element={<ActivityLogPage />} />
+            </Route>
+          </Route>
           <Route path="/admin/layanan" element={<LayananPage />} />
           <Route path="/admin/layanan/tambah" element={<FormLayanan />} />
-          <Route path="/admin/klinik/profil" element={<ProfilKlinik />} />
-          <Route path="/admin/klinik/jam-operasional" element={<JamOperasional />} />
-          <Route path="/admin/klinik/dokter" element={<DokterJadwal />} />
-          <Route path="/admin/klinik/struktur-organisasi" element={<StrukturOrganisasi />} />
-          <Route path="/admin/klinik/informasi-pasien" element={<InformasiPasien />} />
-          <Route path="/admin/klinik/galeri" element={<GaleriFasilitas />} />
         </Route>
         <Route path="/forbidden" element={<ForbiddenPage />} />
       </Routes>

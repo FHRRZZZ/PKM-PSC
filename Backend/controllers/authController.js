@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const Admin = require('../models/Admin');
 const jwt = require('jsonwebtoken');
+const ActivityLog = require('../models/ActivityLog');
 
 function generateToken(user) {
     if (!process.env.JWT_SECRET) {
@@ -31,6 +32,16 @@ exports.login = async (req, res) => {
         }
 
         const token = generateToken(user);
+        await ActivityLog.create({
+            admin_id: user.id,
+            admin_username: user.username,
+            admin_role: user.role,
+            action: 'LOGIN',
+            method: 'POST',
+            path: '/api/auth/login',
+            status: 200,
+            ip_address: req.ip,
+        });
         return res.status(200).json({
             token,
             user: {

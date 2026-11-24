@@ -44,3 +44,5 @@ exports.requireRole = (...roles) => (req, res, next) => {
     }
     return next();
 };
+
+exports.requireSuperadmin = exports.requireRole('superadmin');

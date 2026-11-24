@@ -16,8 +16,9 @@ function validTarif(value) {
 
 exports.getAllLayanan = async (req, res) => {
     try {
+        const jenis = req.query.jenis === 'klinik' ? 'klinik' : 'ambulans';
         const layanan = await Layanan.findAll({
-            where: req.user ? {} : { is_active: true },
+            where: { jenis, ...(req.user ? {} : { is_active: true }) },
             order: [['urutan', 'ASC'], ['id', 'ASC']]
         });
         return res.status(200).json(layanan);
@@ -35,6 +36,7 @@ exports.getLayananById = async (req, res) => {
         const layanan = await Layanan.findOne({
             where: {
                 id,
+                ...(req.query.jenis ? { jenis: req.query.jenis } : {}),
                 ...(req.user ? {} : { is_active: true })
             }
         });
@@ -52,6 +54,7 @@ exports.getLayananBySlug = async (req, res) => {
         const layanan = await Layanan.findOne({
             where: {
                 slug: req.params.slug,
+                ...(req.query.jenis ? { jenis: req.query.jenis } : {}),
                 ...(req.user ? {} : { is_active: true })
             }
         });
@@ -67,6 +70,7 @@ exports.getLayananBySlug = async (req, res) => {
 exports.createLayanan = async (req, res) => {
     try {
         const body = req.body || {};
+        const jenis = body.jenis === 'klinik' ? 'klinik' : 'ambulans';
         const foto = req.file ? `/uploads/${req.file.filename}` : (body.foto || null);
         if (typeof body.nama !== 'string' || !body.nama.trim()
             || typeof body.deskripsi !== 'string' || !body.deskripsi.trim()) {
@@ -100,6 +104,12 @@ exports.createLayanan = async (req, res) => {
             nama: body.nama.trim(),
             slug,
             deskripsi: body.deskripsi.trim(),
+            jenis,
+            akreditasi: body.akreditasi || null,
+            akreditasi_tahun: body.akreditasi_tahun || null,
+            izin_operasional_nomor: body.izin_operasional_nomor || null,
+            izin_operasional_penerbit: body.izin_operasional_penerbit || null,
+            izin_operasional_file: body.izin_operasional_file || null,
             foto,
             tarif,
             tarif_is_active: tarifIsActive,
@@ -125,6 +135,7 @@ exports.updateLayanan = async (req, res) => {
 
         const body = req.body || {};
         const updates = {};
+        if (body.jenis !== undefined) updates.jenis = body.jenis === 'klinik' ? 'klinik' : 'ambulans';
         if (req.file) {
             updates.foto = `/uploads/${req.file.filename}`;
         }
@@ -135,6 +146,9 @@ exports.updateLayanan = async (req, res) => {
                 }
                 updates[field] = body[field].trim();
             }
+        }
+        for (const field of ['akreditasi', 'akreditasi_tahun', 'izin_operasional_nomor', 'izin_operasional_penerbit', 'izin_operasional_file']) {
+            if (body[field] !== undefined) updates[field] = body[field] || null;
         }
         if (body.slug !== undefined || body.nama !== undefined) {
             updates.slug = await getUniqueSlug(Layanan, body.slug || body.nama || layanan.nama, id);
